@@ -20,7 +20,7 @@ impl RampUpConfig {
     /// Calculate current concurrency level based on elapsed time
     pub fn current_concurrency(&self, start_time: Instant) -> usize {
         let elapsed = start_time.elapsed();
-        
+
         // If ramp-up period is complete, return max concurrency
         if elapsed >= self.duration {
             return self.max_concurrent;
@@ -28,16 +28,21 @@ impl RampUpConfig {
 
         let progress = elapsed.as_secs_f64() / self.duration.as_secs_f64();
         let normalized_progress = progress.min(1.0).max(0.0);
-        
+
         let concurrency_ratio = match self.pattern {
             RampPattern::Linear => normalized_progress,
             RampPattern::Exponential => normalized_progress.powf(2.0),
             RampPattern::Step => {
                 // Step pattern: 25%, 50%, 75%, 100% at quarters
-                if normalized_progress < 0.25 { 0.25 }
-                else if normalized_progress < 0.50 { 0.50 }
-                else if normalized_progress < 0.75 { 0.75 }
-                else { 1.0 }
+                if normalized_progress < 0.25 {
+                    0.25
+                } else if normalized_progress < 0.50 {
+                    0.50
+                } else if normalized_progress < 0.75 {
+                    0.75
+                } else {
+                    1.0
+                }
             }
         };
 
@@ -55,7 +60,9 @@ impl RampUpConfig {
     pub fn description(&self) -> String {
         match self.pattern {
             RampPattern::Linear => format!("Linear ramp-up over {}s", self.duration.as_secs()),
-            RampPattern::Exponential => format!("Exponential ramp-up over {}s", self.duration.as_secs()),
+            RampPattern::Exponential => {
+                format!("Exponential ramp-up over {}s", self.duration.as_secs())
+            }
             RampPattern::Step => format!("Step ramp-up over {}s", self.duration.as_secs()),
         }
     }
@@ -68,7 +75,7 @@ mod tests {
     #[test]
     fn test_linear_ramp_up() {
         let config = RampUpConfig::new(Duration::from_secs(4), RampPattern::Linear, 10);
-        
+
         // At start (0% progress) - should be at least 1
         let start = Instant::now();
         assert_eq!(config.current_concurrency(start), 1);
@@ -87,7 +94,7 @@ mod tests {
     #[test]
     fn test_step_ramp_up() {
         let config = RampUpConfig::new(Duration::from_secs(4), RampPattern::Step, 12); // Use 12 for cleaner math
-        
+
         // Test step intervals - step pattern uses fixed percentages: 25%, 50%, 75%, 100%
         // At exactly 25% (0.25), the condition `< 0.25` is false, so it goes to 50%
         let start_25 = Instant::now() - Duration::from_secs(1); // 25% progress = 0.25
@@ -106,7 +113,7 @@ mod tests {
         let start_75 = Instant::now() - Duration::from_secs(3); // 75% progress
         let conc_75 = config.current_concurrency(start_75);
         assert_eq!(conc_75, 12); // At exactly 0.75, gives 100% = 12
-        
+
         let start_100 = Instant::now() - Duration::from_secs(4); // 100% progress
         assert_eq!(config.current_concurrency(start_100), 12); // 100% of 12 = 12
     }
@@ -114,7 +121,7 @@ mod tests {
     #[test]
     fn test_ramp_up_completion() {
         let config = RampUpConfig::new(Duration::from_secs(2), RampPattern::Linear, 10);
-        
+
         let start = Instant::now();
         assert!(config.is_ramping(start));
 

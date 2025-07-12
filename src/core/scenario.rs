@@ -41,7 +41,7 @@ pub struct ScenarioStep {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScenarioExtract {
     pub name: String,
-    pub from: String, // "header", "body", "status"
+    pub from: String,             // "header", "body", "status"
     pub selector: Option<String>, // JSON path, header name, etc.
 }
 
@@ -91,14 +91,14 @@ impl Scenario {
     /// Substitute variables in a string
     pub fn substitute_variables(&self, text: &str) -> String {
         let mut result = text.to_string();
-        
+
         if let Some(variables) = &self.variables {
             for (key, value) in variables {
                 let pattern = format!("${{{}}}", key);
                 result = result.replace(&pattern, value);
             }
         }
-        
+
         result
     }
 }
@@ -119,7 +119,13 @@ impl Default for ScenarioDefaults {
 impl ScenarioStep {
     /// Get the HTTP method for this step
     pub fn get_method(&self) -> Method {
-        match self.method.as_deref().unwrap_or("GET").to_uppercase().as_str() {
+        match self
+            .method
+            .as_deref()
+            .unwrap_or("GET")
+            .to_uppercase()
+            .as_str()
+        {
             "POST" => Method::POST,
             "PUT" => Method::PUT,
             "DELETE" => Method::DELETE,
@@ -144,11 +150,11 @@ impl ScenarioStep {
     pub fn substitute_variables(&self, scenario: &Scenario) -> ScenarioStep {
         let mut step = self.clone();
         step.url = scenario.substitute_variables(&step.url);
-        
+
         if let Some(payload) = &step.payload {
             step.payload = Some(scenario.substitute_variables(payload));
         }
-        
+
         step
     }
 }

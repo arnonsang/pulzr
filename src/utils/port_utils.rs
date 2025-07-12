@@ -34,10 +34,10 @@ mod tests {
         // Bind to a port first
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let port = listener.local_addr().unwrap().port();
-        
+
         // Now test that the port is not available
         assert!(!is_port_available(port));
-        
+
         // Drop the listener and test that the port becomes available
         drop(listener);
         // Note: Port might not be immediately available due to TIME_WAIT state
@@ -48,7 +48,7 @@ mod tests {
         // Try to find a port starting from a high number
         let preferred_port = 45000;
         let result = find_available_port(preferred_port, 10);
-        
+
         match result {
             Some(port) => {
                 assert!(port >= preferred_port);
@@ -68,10 +68,10 @@ mod tests {
         let _listeners: Vec<TcpListener> = (0..3)
             .map(|i| TcpListener::bind(format!("127.0.0.1:{}", start_port + i)).unwrap())
             .collect();
-        
+
         // Try to find a port in the same range
         let result = find_available_port(start_port, 5);
-        
+
         match result {
             Some(port) => {
                 // Should find a port beyond the bound ones
@@ -94,7 +94,7 @@ mod tests {
     fn test_find_available_port_one_attempt() {
         let preferred_port = 45200;
         let result = find_available_port(preferred_port, 1);
-        
+
         match result {
             Some(port) => assert_eq!(port, preferred_port),
             None => {
@@ -109,7 +109,7 @@ mod tests {
         // Test near the maximum port number
         let preferred_port = 65530;
         let result = find_available_port(preferred_port, 10);
-        
+
         // Should handle port number overflow gracefully
         match result {
             Some(port) => {
@@ -132,12 +132,12 @@ mod tests {
     #[test]
     fn test_multiple_calls_consistency() {
         let port = 45300;
-        
+
         // If a port is available, it should remain available in quick succession
         // (unless something else binds to it)
         let first_check = is_port_available(port);
         let _second_check = is_port_available(port);
-        
+
         // Both calls should return the same result (in most cases)
         // This test might occasionally fail due to race conditions, but should be rare
         if first_check {

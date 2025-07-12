@@ -6,19 +6,31 @@ use std::path::PathBuf;
 #[command(about = "A high-performance load testing tool with TUI and WebSocket support")]
 #[command(version = "0.1.0")]
 pub struct Cli {
-    #[arg(long, help = "Target URL to test (optional when using --scenario or --endpoints)")]
+    #[arg(
+        long,
+        help = "Target URL to test (optional when using --scenario or --endpoints)"
+    )]
     pub url: Option<String>,
 
     #[arg(long, help = "Multiple endpoints configuration file (JSON/YAML)")]
     pub endpoints: Option<PathBuf>,
 
-    #[arg(long, short = 'c', default_value = "10", help = "Number of concurrent requests")]
+    #[arg(
+        long,
+        short = 'c',
+        default_value = "10",
+        help = "Number of concurrent requests"
+    )]
     pub concurrent: usize,
 
     #[arg(long, short = 'r', help = "Requests per second limit")]
     pub rps: Option<u64>,
 
-    #[arg(long, short = 'd', help = "Test duration in seconds (default: run until stopped)")]
+    #[arg(
+        long,
+        short = 'd',
+        help = "Test duration in seconds (default: run until stopped)"
+    )]
     pub duration: Option<u64>,
 
     #[arg(long, short = 'm', default_value = "get", help = "HTTP method")]
@@ -72,13 +84,24 @@ pub struct Cli {
     #[arg(long, help = "Ramp-up duration in seconds (gradual load increase)")]
     pub ramp_up: Option<u64>,
 
-    #[arg(long, default_value = "linear", help = "Ramp-up pattern (linear, exponential, step)")]
+    #[arg(
+        long,
+        default_value = "linear",
+        help = "Ramp-up pattern (linear, exponential, step)"
+    )]
     pub ramp_pattern: RampPattern,
 
-    #[arg(long, help = "Enable debug mode with detailed request/response logging")]
+    #[arg(
+        long,
+        help = "Enable debug mode with detailed request/response logging"
+    )]
     pub debug: bool,
 
-    #[arg(long, default_value = "1", help = "Debug verbosity level (1-3): 1=basic, 2=headers, 3=full")]
+    #[arg(
+        long,
+        default_value = "1",
+        help = "Debug verbosity level (1-3): 1=basic, 2=headers, 3=full"
+    )]
     pub debug_level: u8,
 
     // Authentication options
@@ -106,14 +129,22 @@ pub struct Cli {
     #[arg(long, default_value = "x-api-key", help = "API key header name")]
     pub api_key_header: String,
 
-    #[arg(long, default_value = "header", help = "API key location (header, query, bearer)")]
+    #[arg(
+        long,
+        default_value = "header",
+        help = "API key location (header, query, bearer)"
+    )]
     pub api_key_location: ApiKeyLocation,
 
     // Prometheus options
     #[arg(long, help = "Enable Prometheus metrics endpoint")]
     pub prometheus: bool,
 
-    #[arg(long, default_value = "9090", help = "Prometheus metrics endpoint port")]
+    #[arg(
+        long,
+        default_value = "9090",
+        help = "Prometheus metrics endpoint port"
+    )]
     pub prometheus_port: u16,
 
     // Grafana options
@@ -136,19 +167,34 @@ pub struct Cli {
     #[arg(long, help = "Enable memory optimization with streaming stats")]
     pub memory_optimize: bool,
 
-    #[arg(long, help = "Memory optimization profile (default, streaming, high-throughput, low-memory)")]
+    #[arg(
+        long,
+        help = "Memory optimization profile (default, streaming, high-throughput, low-memory)"
+    )]
     pub memory_profile: Option<String>,
 
-    #[arg(long, default_value = "10000", help = "Maximum number of request results to keep in memory")]
+    #[arg(
+        long,
+        default_value = "10000",
+        help = "Maximum number of request results to keep in memory"
+    )]
     pub max_results: usize,
 
-    #[arg(long, default_value = "3600", help = "Maximum age of request results in seconds")]
+    #[arg(
+        long,
+        default_value = "3600",
+        help = "Maximum age of request results in seconds"
+    )]
     pub max_result_age: u64,
 
     #[arg(long, help = "Enable automatic memory cleanup")]
     pub auto_cleanup: bool,
 
-    #[arg(long, default_value = "60", help = "Memory cleanup interval in seconds")]
+    #[arg(
+        long,
+        default_value = "60",
+        help = "Memory cleanup interval in seconds"
+    )]
     pub cleanup_interval: u64,
 
     // HTTP/2 options

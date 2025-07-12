@@ -37,13 +37,13 @@ pub fn get_system_memory_info() -> Result<SystemMemoryInfo, std::io::Error> {
 fn get_linux_memory_info() -> Result<SystemMemoryInfo, std::io::Error> {
     let file = fs::File::open("/proc/meminfo")?;
     let reader = BufReader::new(file);
-    
+
     let mut total_kb = 0;
     let mut available_kb = 0;
     let mut free_kb = 0;
     let mut buffers_kb = 0;
     let mut cached_kb = 0;
-    
+
     for line in reader.lines() {
         let line = line?;
         let parts: Vec<&str> = line.split_whitespace().collect();
@@ -59,17 +59,17 @@ fn get_linux_memory_info() -> Result<SystemMemoryInfo, std::io::Error> {
             }
         }
     }
-    
+
     // If MemAvailable is not available, estimate it
     if available_kb == 0 {
         available_kb = free_kb + buffers_kb + cached_kb;
     }
-    
+
     let total_mb = total_kb as f64 / 1024.0;
     let available_mb = available_kb as f64 / 1024.0;
     let used_mb = total_mb - available_mb;
     let usage_percent = (used_mb / total_mb) * 100.0;
-    
+
     Ok(SystemMemoryInfo {
         total_mb,
         available_mb,
@@ -83,7 +83,7 @@ fn get_macos_memory_info() -> Result<SystemMemoryInfo, std::io::Error> {
     // On macOS, we'll use a simplified approach
     // In a real implementation, you'd use system calls or vm_stat
     Ok(SystemMemoryInfo {
-        total_mb: 8192.0,  // Placeholder
+        total_mb: 8192.0, // Placeholder
         available_mb: 4096.0,
         used_mb: 4096.0,
         usage_percent: 50.0,
@@ -95,7 +95,7 @@ fn get_windows_memory_info() -> Result<SystemMemoryInfo, std::io::Error> {
     // On Windows, you'd use Windows API calls
     // For now, return placeholder values
     Ok(SystemMemoryInfo {
-        total_mb: 8192.0,  // Placeholder
+        total_mb: 8192.0, // Placeholder
         available_mb: 4096.0,
         used_mb: 4096.0,
         usage_percent: 50.0,
@@ -117,10 +117,10 @@ pub fn get_process_memory_usage() -> Result<f64, std::io::Error> {
 fn get_linux_process_memory() -> Result<f64, std::io::Error> {
     let pid = std::process::id();
     let status_path = format!("/proc/{}/status", pid);
-    
+
     let file = fs::File::open(status_path)?;
     let reader = BufReader::new(file);
-    
+
     for line in reader.lines() {
         let line = line?;
         if line.starts_with("VmRSS:") {
@@ -131,7 +131,7 @@ fn get_linux_process_memory() -> Result<f64, std::io::Error> {
             }
         }
     }
-    
+
     Ok(0.0)
 }
 
@@ -153,7 +153,7 @@ mod tests {
     fn test_system_memory_info() {
         let info = get_system_memory_info();
         assert!(info.is_ok());
-        
+
         let info = info.unwrap();
         assert!(info.total_mb >= 0.0);
         assert!(info.available_mb >= 0.0);
@@ -165,7 +165,7 @@ mod tests {
     fn test_process_memory_usage() {
         let usage = get_process_memory_usage();
         assert!(usage.is_ok());
-        
+
         let usage = usage.unwrap();
         assert!(usage >= 0.0);
     }

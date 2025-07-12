@@ -1,4 +1,4 @@
-use crate::common::{MockHttpServer, get_free_port};
+use crate::common::{get_free_port, MockHttpServer};
 
 #[tokio::test]
 async fn test_mock_server_creation() {
@@ -20,7 +20,7 @@ async fn test_httpbin_connectivity() {
     // Test that we can reach httpbin for integration tests
     let client = reqwest::Client::new();
     let response = client.get("https://httpbin.org/status/200").send().await;
-    
+
     match response {
         Ok(resp) => {
             assert_eq!(resp.status(), 200);

@@ -9,7 +9,6 @@ pub fn get_free_port() -> u16 {
     port
 }
 
-
 /// Mock HTTP server for testing
 pub struct MockHttpServer {
     pub port: u16,
@@ -22,7 +21,7 @@ impl MockHttpServer {
         let base_url = format!("http://127.0.0.1:{}", port);
         Self { port, base_url }
     }
-    
+
     pub fn url(&self, path: &str) -> String {
         format!("{}{}", self.base_url, path)
     }

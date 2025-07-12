@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use anyhow;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Http2Config {
@@ -26,13 +26,13 @@ pub struct Http2Config {
 impl Default for Http2Config {
     fn default() -> Self {
         Self {
-            enabled: false,  // Disabled by default for compatibility
+            enabled: false, // Disabled by default for compatibility
             prior_knowledge: false,
             http1_only: false,
-            initial_connection_window_size: None,  // Use reqwest defaults
-            initial_stream_window_size: None,      // Use reqwest defaults
-            max_frame_size: None,                  // Use reqwest defaults
-            adaptive_window: true,                 // Enable adaptive window by default
+            initial_connection_window_size: None, // Use reqwest defaults
+            initial_stream_window_size: None,     // Use reqwest defaults
+            max_frame_size: None,                 // Use reqwest defaults
+            adaptive_window: true,                // Enable adaptive window by default
             keep_alive_interval: Some(30),        // 30 seconds
             keep_alive_timeout: Some(5),          // 5 seconds
         }
@@ -79,44 +79,55 @@ impl Http2Config {
     pub fn optimize_for_load_testing() -> Self {
         Self {
             enabled: true,
-            prior_knowledge: false,  // Allow negotiation for broader compatibility
+            prior_knowledge: false, // Allow negotiation for broader compatibility
             http1_only: false,
-            initial_connection_window_size: Some(1048576),  // 1MB
-            initial_stream_window_size: Some(262144),       // 256KB
-            max_frame_size: Some(32768),                    // 32KB
+            initial_connection_window_size: Some(1048576), // 1MB
+            initial_stream_window_size: Some(262144),      // 256KB
+            max_frame_size: Some(32768),                   // 32KB
             adaptive_window: true,
-            keep_alive_interval: Some(10),  // More frequent for load testing
-            keep_alive_timeout: Some(2),    // Shorter timeout
+            keep_alive_interval: Some(10), // More frequent for load testing
+            keep_alive_timeout: Some(2),   // Shorter timeout
         }
     }
 
     pub fn validate(&self) -> Result<(), anyhow::Error> {
         if self.enabled && self.http1_only {
-            return Err(anyhow::anyhow!("Cannot enable both HTTP/2 and HTTP/1-only mode"));
+            return Err(anyhow::anyhow!(
+                "Cannot enable both HTTP/2 and HTTP/1-only mode"
+            ));
         }
 
         if let Some(window_size) = self.initial_connection_window_size {
             if window_size < 65535 {
-                return Err(anyhow::anyhow!("HTTP/2 initial connection window size must be at least 65535 bytes"));
+                return Err(anyhow::anyhow!(
+                    "HTTP/2 initial connection window size must be at least 65535 bytes"
+                ));
             }
         }
 
         if let Some(window_size) = self.initial_stream_window_size {
             if window_size < 65535 {
-                return Err(anyhow::anyhow!("HTTP/2 initial stream window size must be at least 65535 bytes"));
+                return Err(anyhow::anyhow!(
+                    "HTTP/2 initial stream window size must be at least 65535 bytes"
+                ));
             }
         }
 
         if let Some(frame_size) = self.max_frame_size {
             if frame_size < 16384 || frame_size > 16777215 {
-                return Err(anyhow::anyhow!("HTTP/2 max frame size must be between 16384 and 16777215 bytes"));
+                return Err(anyhow::anyhow!(
+                    "HTTP/2 max frame size must be between 16384 and 16777215 bytes"
+                ));
             }
         }
 
         Ok(())
     }
 
-    pub fn apply_to_client_builder(&self, builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    pub fn apply_to_client_builder(
+        &self,
+        builder: reqwest::ClientBuilder,
+    ) -> reqwest::ClientBuilder {
         let mut builder = builder;
 
         if self.http1_only {
@@ -145,7 +156,8 @@ impl Http2Config {
             }
 
             if let Some(interval) = self.keep_alive_interval {
-                builder = builder.http2_keep_alive_interval(Some(std::time::Duration::from_secs(interval)));
+                builder = builder
+                    .http2_keep_alive_interval(Some(std::time::Duration::from_secs(interval)));
             }
 
             if let Some(timeout) = self.keep_alive_timeout {

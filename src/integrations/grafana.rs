@@ -44,10 +44,14 @@ impl GrafanaManager {
 
     /// Load a dashboard from file
     pub fn load_dashboard(&self, dashboard_name: &str) -> Result<GrafanaDashboard> {
-        let dashboard_path = Path::new(&self.dashboards_dir).join(format!("{}.json", dashboard_name));
-        
+        let dashboard_path =
+            Path::new(&self.dashboards_dir).join(format!("{}.json", dashboard_name));
+
         if !dashboard_path.exists() {
-            return Err(anyhow::anyhow!("Dashboard file not found: {}", dashboard_path.display()));
+            return Err(anyhow::anyhow!(
+                "Dashboard file not found: {}",
+                dashboard_path.display()
+            ));
         }
 
         let content = fs::read_to_string(&dashboard_path)
@@ -62,17 +66,17 @@ impl GrafanaManager {
     /// List available dashboards
     pub fn list_dashboards(&self) -> Result<Vec<String>> {
         let dashboards_path = Path::new(&self.dashboards_dir);
-        
+
         if !dashboards_path.exists() {
             return Ok(Vec::new());
         }
 
         let mut dashboards = Vec::new();
-        
+
         for entry in fs::read_dir(dashboards_path)? {
             let entry = entry?;
             let path = entry.path();
-            
+
             if path.is_file() && path.extension().map_or(false, |ext| ext == "json") {
                 if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
                     dashboards.push(name.to_string());
@@ -87,7 +91,7 @@ impl GrafanaManager {
     /// Get dashboard information without loading full content
     pub fn get_dashboard_info(&self, dashboard_name: &str) -> Result<DashboardInfo> {
         let dashboard = self.load_dashboard(dashboard_name)?;
-        
+
         Ok(DashboardInfo {
             name: dashboard_name.to_string(),
             title: dashboard.title,
@@ -114,7 +118,7 @@ impl GrafanaManager {
     /// Generate import instructions for a dashboard
     pub fn generate_import_instructions(&self, dashboard_name: &str) -> Result<String> {
         let info = self.get_dashboard_info(dashboard_name)?;
-        
+
         let instructions = format!(
             r#"# Import Instructions for {dashboard_name}
 
@@ -237,7 +241,10 @@ impl DashboardInfo {
         println!("   Tags: {}", self.tags.join(", "));
         println!("   Panels: {}", self.panel_count);
         println!("   Refresh: {}", self.refresh_rate);
-        println!("   Time Range: {} to {}", self.time_range.from, self.time_range.to);
+        println!(
+            "   Time Range: {} to {}",
+            self.time_range.from, self.time_range.to
+        );
     }
 }
 
@@ -260,7 +267,7 @@ mod tests {
     fn test_create_prometheus_datasource() {
         let manager = GrafanaManager::new(None);
         let datasource = manager.create_prometheus_datasource("http://localhost:9090");
-        
+
         assert_eq!(datasource.name, "Pulzr Prometheus");
         assert_eq!(datasource.r#type, "prometheus");
         assert_eq!(datasource.url, "http://localhost:9090");
@@ -308,7 +315,7 @@ mod tests {
 
         let manager = GrafanaManager::new(Some(dashboards_dir.to_string_lossy().to_string()));
         let issues = manager.validate_dashboard("test-dashboard").unwrap();
-        
+
         assert!(issues.is_empty(), "Dashboard should be valid: {:?}", issues);
     }
 
@@ -325,7 +332,7 @@ mod tests {
 
         let manager = GrafanaManager::new(Some(dashboards_dir.to_string_lossy().to_string()));
         let dashboards = manager.list_dashboards().unwrap();
-        
+
         assert_eq!(dashboards.len(), 2);
         assert!(dashboards.contains(&"dashboard1".to_string()));
         assert!(dashboards.contains(&"dashboard2".to_string()));

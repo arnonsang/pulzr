@@ -1,7 +1,13 @@
 use governor::{Quota, RateLimiter};
 
 pub struct RequestRateLimiter {
-    limiter: Option<RateLimiter<governor::state::direct::NotKeyed, governor::state::InMemoryState, governor::clock::DefaultClock>>,
+    limiter: Option<
+        RateLimiter<
+            governor::state::direct::NotKeyed,
+            governor::state::InMemoryState,
+            governor::clock::DefaultClock,
+        >,
+    >,
 }
 
 impl RequestRateLimiter {
@@ -10,9 +16,7 @@ impl RequestRateLimiter {
             if rps > 0 {
                 let rps_u32 = rps.min(u32::MAX as u64) as u32;
                 if rps_u32 > 0 {
-                    let quota = Quota::per_second(
-                        std::num::NonZeroU32::new(rps_u32).unwrap()
-                    );
+                    let quota = Quota::per_second(std::num::NonZeroU32::new(rps_u32).unwrap());
                     Some(RateLimiter::direct(quota))
                 } else {
                     None
@@ -23,16 +27,16 @@ impl RequestRateLimiter {
         } else {
             None
         };
-        
+
         Self { limiter }
     }
-    
+
     pub async fn acquire(&self) {
         if let Some(limiter) = &self.limiter {
             limiter.until_ready().await;
         }
     }
-    
+
     pub fn is_enabled(&self) -> bool {
         self.limiter.is_some()
     }
@@ -80,16 +84,16 @@ mod tests {
     #[tokio::test]
     async fn test_rate_limiter_acquire_enabled() {
         let limiter = RequestRateLimiter::new(Some(100)); // High RPS to avoid timing issues
-        
+
         // Verify rate limiter is enabled
         assert!(limiter.is_enabled());
-        
+
         // Test that acquire() completes without panicking
         // We don't test exact timing as it's too flaky in test environments
         for _ in 0..3 {
             limiter.acquire().await;
         }
-        
+
         // If we get here, the rate limiter is working (not hanging/panicking)
         assert!(true);
     }
@@ -99,11 +103,11 @@ mod tests {
         // Test with 1 RPS
         let limiter = RequestRateLimiter::new(Some(1));
         assert!(limiter.is_enabled());
-        
+
         // Test with maximum u32 value
         let limiter = RequestRateLimiter::new(Some(u32::MAX as u64));
         assert!(limiter.is_enabled());
-        
+
         // Test with value exceeding u32::MAX
         let limiter = RequestRateLimiter::new(Some(u32::MAX as u64 + 1));
         assert!(limiter.is_enabled());

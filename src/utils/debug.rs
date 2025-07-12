@@ -11,9 +11,9 @@ pub struct DebugConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DebugLevel {
-    Basic = 1,    // Basic request/response info
-    Headers = 2,  // Include headers
-    Full = 3,     // Include body content
+    Basic = 1,   // Basic request/response info
+    Headers = 2, // Include headers
+    Full = 3,    // Include body content
 }
 
 impl From<u8> for DebugLevel {
@@ -76,7 +76,11 @@ impl DebugConfig {
             return;
         }
 
-        println!("🔍 [DEBUG] Request {} [{}]", session_id, request_info.timestamp.format("%H:%M:%S%.3f"));
+        println!(
+            "🔍 [DEBUG] Request {} [{}]",
+            session_id,
+            request_info.timestamp.format("%H:%M:%S%.3f")
+        );
         println!("  {} {}", request_info.method, request_info.url);
 
         if let Some(ua) = &request_info.user_agent {
@@ -105,8 +109,15 @@ impl DebugConfig {
             return;
         }
 
-        println!("📨 [DEBUG] Response {} [{}]", session_id, response_info.timestamp.format("%H:%M:%S%.3f"));
-        println!("  Status: {} ({:?})", response_info.status, response_info.duration);
+        println!(
+            "📨 [DEBUG] Response {} [{}]",
+            session_id,
+            response_info.timestamp.format("%H:%M:%S%.3f")
+        );
+        println!(
+            "  Status: {} ({:?})",
+            response_info.status, response_info.duration
+        );
 
         if let Some(content_length) = response_info.content_length {
             println!("  Content-Length: {} bytes", content_length);
@@ -176,7 +187,11 @@ impl DebugConfig {
 
 /// Helper functions for extracting debug information from HTTP types
 impl RequestDebugInfo {
-    pub fn from_reqwest_request(request: &Request, include_headers: bool, include_body: bool) -> Self {
+    pub fn from_reqwest_request(
+        request: &Request,
+        include_headers: bool,
+        include_body: bool,
+    ) -> Self {
         let mut headers = None;
         let mut user_agent = None;
 
@@ -231,7 +246,7 @@ impl ResponseDebugInfo {
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let status = response.status().as_u16();
         let content_length = response.content_length();
-        
+
         let mut headers = None;
         if include_headers {
             let mut header_map = HashMap::new();

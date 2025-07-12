@@ -1,5 +1,5 @@
-use crate::utils::find_available_port;
 use crate::integrations::PrometheusExporter;
+use crate::utils::find_available_port;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -22,7 +22,10 @@ impl PrometheusServer {
         Self { port, exporter }
     }
 
-    pub async fn start(&self, mut quit_receiver: broadcast::Receiver<()>) -> Result<u16, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn start(
+        &self,
+        mut quit_receiver: broadcast::Receiver<()>,
+    ) -> Result<u16, Box<dyn std::error::Error + Send + Sync>> {
         let actual_port = find_available_port(self.port, 50)
             .ok_or_else(|| format!("Could not find available port starting from {}", self.port))?;
 
@@ -33,10 +36,14 @@ impl PrometheusServer {
 
         let addr = SocketAddr::from(([127, 0, 0, 1], actual_port));
 
-        let listener = tokio::net::TcpListener::bind(addr).await
+        let listener = tokio::net::TcpListener::bind(addr)
+            .await
             .map_err(|e| format!("Failed to bind Prometheus server to {}: {}", addr, e))?;
 
-        println!("📊 Prometheus metrics server listening on: http://{}/metrics", addr);
+        println!(
+            "📊 Prometheus metrics server listening on: http://{}/metrics",
+            addr
+        );
 
         // Spawn background task to update metrics periodically
         let exporter_clone = Arc::clone(&self.exporter);

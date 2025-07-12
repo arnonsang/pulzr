@@ -47,42 +47,46 @@ impl LoadTester {
             debug_config: DebugConfig::disabled(),
         }
     }
-    
+
     pub fn with_scenario(mut self, scenario: Arc<Scenario>) -> Self {
         self.scenario = Some(scenario);
         self
     }
-    
+
     pub fn with_endpoints(mut self, endpoints: Arc<MultiEndpointConfig>) -> Self {
         self.endpoints = Some(endpoints);
         self
     }
-    
+
     pub fn with_ramp_up(mut self, ramp_up: RampUpConfig) -> Self {
         self.ramp_up = Some(ramp_up);
         self
     }
-    
+
     pub fn with_debug(mut self, debug_config: DebugConfig) -> Self {
         self.debug_config = debug_config;
         self
     }
-    
+
     pub async fn run_test(&self, quit_receiver: broadcast::Receiver<()>) -> Result<()> {
         if let Some(ramp_up) = &self.ramp_up {
-            self.run_test_with_ramp_up(quit_receiver, ramp_up.clone()).await
+            self.run_test_with_ramp_up(quit_receiver, ramp_up.clone())
+                .await
         } else {
             self.run_test_fixed_concurrency(quit_receiver).await
         }
     }
-    
-    async fn run_test_fixed_concurrency(&self, mut quit_receiver: broadcast::Receiver<()>) -> Result<()> {
+
+    async fn run_test_fixed_concurrency(
+        &self,
+        mut quit_receiver: broadcast::Receiver<()>,
+    ) -> Result<()> {
         let mut handles = Vec::new();
-        
+
         // Prepare request data (scenarios, endpoints, or single URL)
         let (scenario_data, endpoint_data) = self.prepare_request_data();
         let random_indices = self.generate_random_indices(&scenario_data, &endpoint_data);
-        
+
         for _ in 0..self.concurrent_requests {
             let client = Arc::clone(&self.client);
             let rate_limiter = Arc::clone(&self.rate_limiter);
@@ -95,11 +99,11 @@ impl LoadTester {
             let random_indices = random_indices.clone();
             let debug_config = self.debug_config.clone();
             let mut quit_rx = quit_receiver.resubscribe();
-            
+
             let handle = tokio::spawn(async move {
                 let end_time = test_duration.map(|d| tokio::time::Instant::now() + d);
                 let mut request_count = 0usize;
-                
+
                 loop {
                     tokio::select! {
                         _ = quit_rx.recv() => {
@@ -112,9 +116,9 @@ impl LoadTester {
                                     return;
                                 }
                             }
-                            
+
                             rate_limiter.acquire().await;
-                            
+
                             // Execute based on type: scenario step, endpoint, or regular request
                             if let Some((steps, _)) = &scenario_data {
                                 // Scenario-based testing
@@ -123,11 +127,11 @@ impl LoadTester {
                                         let step_index = indices[request_count % indices.len()];
                                         let step = &steps[step_index];
                                         let processed_step = step.substitute_variables(scenario);
-                                        
+
                                         if let Err(e) = Self::execute_scenario_step(&client, &processed_step, Arc::clone(&stats_collector), &debug_config).await {
                                             eprintln!("Scenario step '{}' error: {}", step.name, e);
                                         }
-                                        
+
                                         request_count += 1;
                                     }
                                 }
@@ -137,11 +141,11 @@ impl LoadTester {
                                     if let Some(indices) = &random_indices {
                                         let endpoint_index = indices[request_count % indices.len()];
                                         let endpoint = &endpoints_list[endpoint_index];
-                                        
+
                                         if let Err(e) = Self::execute_endpoint_request(&client, endpoint, &endpoints_config.defaults, Arc::clone(&stats_collector), &debug_config).await {
                                             eprintln!("Endpoint '{}' error: {}", endpoint.name, e);
                                         }
-                                        
+
                                         request_count += 1;
                                     }
                                 }
@@ -165,10 +169,10 @@ impl LoadTester {
                     }
                 }
             });
-            
+
             handles.push(handle);
         }
-        
+
         // Wait for either duration to complete or quit signal
         if let Some(duration) = self.test_duration {
             tokio::select! {
@@ -182,25 +186,29 @@ impl LoadTester {
             let _ = quit_receiver.recv().await;
             println!("Received quit signal, stopping test...");
         }
-        
+
         for handle in handles {
             handle.abort();
         }
-        
+
         Ok(())
     }
-    
-    async fn run_test_with_ramp_up(&self, mut quit_receiver: broadcast::Receiver<()>, ramp_up: RampUpConfig) -> Result<()> {
+
+    async fn run_test_with_ramp_up(
+        &self,
+        mut quit_receiver: broadcast::Receiver<()>,
+        ramp_up: RampUpConfig,
+    ) -> Result<()> {
         let mut handles = Vec::new();
         let active_tasks = Arc::new(AtomicUsize::new(0));
         let start_time = Instant::now();
-        
+
         // Prepare request data (scenarios, endpoints, or single URL)
         let (scenario_data, endpoint_data) = self.prepare_request_data();
         let random_indices = self.generate_random_indices(&scenario_data, &endpoint_data);
-        
+
         println!("Starting ramp-up: {}", ramp_up.description());
-        
+
         // Spawn initial tasks
         let initial_concurrency = ramp_up.current_concurrency(start_time);
         for _ in 0..initial_concurrency {
@@ -215,11 +223,11 @@ impl LoadTester {
             handles.push(handle);
             active_tasks.fetch_add(1, Ordering::SeqCst);
         }
-        
+
         // Monitor and adjust concurrency during ramp-up
         let mut last_concurrency = initial_concurrency;
         let mut check_interval = tokio::time::interval(Duration::from_millis(500));
-        
+
         loop {
             tokio::select! {
                 _ = quit_receiver.recv() => {
@@ -233,9 +241,9 @@ impl LoadTester {
                             break;
                         }
                     }
-                    
+
                     let current_concurrency = ramp_up.current_concurrency(start_time);
-                    
+
                     // Adjust concurrency if needed
                     if current_concurrency != last_concurrency {
                         if current_concurrency > last_concurrency {
@@ -255,15 +263,15 @@ impl LoadTester {
                         }
                         // Note: We don't reduce concurrency mid-test to avoid complexity
                         // Tasks will naturally complete and not be replaced
-                        
+
                         last_concurrency = current_concurrency;
                         println!("Ramp-up progress: {} concurrent workers", current_concurrency);
                     }
-                    
+
                     // Check if ramp-up is complete
                     if !ramp_up.is_ramping(start_time) && last_concurrency == ramp_up.max_concurrent {
                         println!("Ramp-up complete! Running at {} concurrent requests", ramp_up.max_concurrent);
-                        
+
                         // Continue with remaining test duration if any
                         if let Some(duration) = self.test_duration {
                             let remaining = duration.saturating_sub(start_time.elapsed());
@@ -286,18 +294,27 @@ impl LoadTester {
                 }
             }
         }
-        
+
         // Cleanup: abort all tasks
         for handle in handles {
             handle.abort();
         }
-        
+
         Ok(())
     }
-    
-    fn prepare_request_data(&self) -> (Option<(Vec<ScenarioStep>, Option<WeightedIndex<f64>>)>, Option<(Vec<Endpoint>, Option<WeightedIndex<f64>>)>) {
+
+    fn prepare_request_data(
+        &self,
+    ) -> (
+        Option<(Vec<ScenarioStep>, Option<WeightedIndex<f64>>)>,
+        Option<(Vec<Endpoint>, Option<WeightedIndex<f64>>)>,
+    ) {
         let scenario_data = if let Some(scenario) = &self.scenario {
-            let weights: Vec<f64> = scenario.steps.iter().map(|step| step.get_weight()).collect();
+            let weights: Vec<f64> = scenario
+                .steps
+                .iter()
+                .map(|step| step.get_weight())
+                .collect();
             let weighted_index = WeightedIndex::new(&weights).ok();
             Some((scenario.steps.clone(), weighted_index))
         } else {
@@ -305,7 +322,11 @@ impl LoadTester {
         };
 
         let endpoint_data = if let Some(endpoints) = &self.endpoints {
-            let weights: Vec<f64> = endpoints.endpoints.iter().map(|endpoint| endpoint.get_weight(&endpoints.defaults)).collect();
+            let weights: Vec<f64> = endpoints
+                .endpoints
+                .iter()
+                .map(|endpoint| endpoint.get_weight(&endpoints.defaults))
+                .collect();
             let weighted_index = WeightedIndex::new(&weights).ok();
             Some((endpoints.endpoints.clone(), weighted_index))
         } else {
@@ -356,11 +377,11 @@ impl LoadTester {
         let endpoints = self.endpoints.clone();
         let debug_config = self.debug_config.clone();
         let mut quit_rx = quit_receiver.resubscribe();
-        
+
         tokio::spawn(async move {
             let end_time = test_duration.map(|d| start_time + d);
             let mut request_count = 0usize;
-            
+
             loop {
                 tokio::select! {
                     _ = quit_rx.recv() => {
@@ -373,9 +394,9 @@ impl LoadTester {
                                 return;
                             }
                         }
-                        
+
                         rate_limiter.acquire().await;
-                        
+
                         // Execute based on type: scenario step, endpoint, or regular request
                         if let Some((steps, _)) = &scenario_data {
                             // Scenario-based testing
@@ -384,11 +405,11 @@ impl LoadTester {
                                     let step_index = indices[request_count % indices.len()];
                                     let step = &steps[step_index];
                                     let processed_step = step.substitute_variables(scenario);
-                                    
+
                                     if let Err(e) = Self::execute_scenario_step(&client, &processed_step, Arc::clone(&stats_collector), &debug_config).await {
                                         eprintln!("Scenario step '{}' error: {}", step.name, e);
                                     }
-                                    
+
                                     request_count += 1;
                                 }
                             }
@@ -398,11 +419,11 @@ impl LoadTester {
                                 if let Some(indices) = &random_indices {
                                     let endpoint_index = indices[request_count % indices.len()];
                                     let endpoint = &endpoints_list[endpoint_index];
-                                    
+
                                     if let Err(e) = Self::execute_endpoint_request(&client, endpoint, &endpoints_config.defaults, Arc::clone(&stats_collector), &debug_config).await {
                                         eprintln!("Endpoint '{}' error: {}", endpoint.name, e);
                                     }
-                                    
+
                                     request_count += 1;
                                 }
                             }
@@ -425,37 +446,42 @@ impl LoadTester {
                     }
                 }
             }
-            
+
             // Decrement active task counter when this task ends
             active_tasks.fetch_sub(1, Ordering::SeqCst);
         })
     }
-    
-    async fn execute_scenario_step(_client: &HttpClient, step: &ScenarioStep, stats_collector: Arc<StatsCollector>, debug_config: &DebugConfig) -> Result<()> {
+
+    async fn execute_scenario_step(
+        _client: &HttpClient,
+        step: &ScenarioStep,
+        stats_collector: Arc<StatsCollector>,
+        debug_config: &DebugConfig,
+    ) -> Result<()> {
         use crate::debug::{DebugConfig, RequestDebugInfo, ResponseDebugInfo};
-        
+
         // Generate session ID for debug correlation
         let session_id = DebugConfig::generate_session_id();
-        
+
         // Create a temporary client for this specific step
         let step_client = reqwest::Client::new();
         let mut request = step_client.request(step.get_method(), &step.url);
-        
+
         // Add headers
         if let Some(headers) = &step.headers {
             for (key, value) in headers {
                 request = request.header(key, value);
             }
         }
-        
+
         // Add payload if present
         if let Some(payload) = &step.payload {
             request = request.body(payload.clone());
         }
-        
+
         // Set timeout
         let timeout_duration = step.get_timeout().unwrap_or(Duration::from_secs(30));
-        
+
         // Debug: Log request details
         if debug_config.enabled {
             let request_info = RequestDebugInfo {
@@ -468,15 +494,15 @@ impl LoadTester {
             };
             debug_config.log_request(&request_info, &session_id);
         }
-        
+
         let start_time = std::time::Instant::now();
-        
+
         match timeout(timeout_duration, request.send()).await {
             Ok(Ok(response)) => {
                 let elapsed = start_time.elapsed();
                 let status = response.status().as_u16();
                 let content_length = response.content_length().unwrap_or(0);
-                
+
                 // Debug: Log response details
                 if debug_config.enabled {
                     let response_info = ResponseDebugInfo {
@@ -489,7 +515,7 @@ impl LoadTester {
                     };
                     debug_config.log_response(&response_info, &session_id);
                 }
-                
+
                 // Record successful request in stats
                 let result = RequestResult {
                     timestamp: Utc::now(),
@@ -500,18 +526,21 @@ impl LoadTester {
                     bytes_received: content_length,
                 };
                 stats_collector.record_request(result).await;
-                
-                println!("Step '{}': {} {} in {:?}", step.name, status, step.url, elapsed);
+
+                println!(
+                    "Step '{}': {} {} in {:?}",
+                    step.name, status, step.url, elapsed
+                );
                 Ok(())
             }
             Ok(Err(e)) => {
                 let elapsed = start_time.elapsed();
-                
+
                 // Debug: Log error details
                 if debug_config.enabled {
                     debug_config.log_error(&e.to_string(), &session_id, elapsed);
                 }
-                
+
                 // Record failed request in stats
                 let result = RequestResult {
                     timestamp: Utc::now(),
@@ -522,18 +551,21 @@ impl LoadTester {
                     bytes_received: 0,
                 };
                 stats_collector.record_request(result).await;
-                
-                eprintln!("Step '{}' request error: {} (took {:?})", step.name, e, elapsed);
+
+                eprintln!(
+                    "Step '{}' request error: {} (took {:?})",
+                    step.name, e, elapsed
+                );
                 Ok(()) // Don't fail the whole test for one request
             }
             Err(_) => {
                 let elapsed = timeout_duration;
-                
+
                 // Debug: Log timeout error
                 if debug_config.enabled {
                     debug_config.log_error("Request timeout", &session_id, elapsed);
                 }
-                
+
                 // Record timeout as failed request
                 let result = RequestResult {
                     timestamp: Utc::now(),
@@ -544,13 +576,13 @@ impl LoadTester {
                     bytes_received: 0,
                 };
                 stats_collector.record_request(result).await;
-                
+
                 eprintln!("Step '{}' timeout after {:?}", step.name, timeout_duration);
                 Ok(()) // Don't fail the whole test for timeouts
             }
         }
     }
-    
+
     async fn execute_endpoint_request(
         _client: &HttpClient,
         endpoint: &Endpoint,
@@ -559,28 +591,30 @@ impl LoadTester {
         debug_config: &DebugConfig,
     ) -> Result<()> {
         use crate::debug::{DebugConfig, RequestDebugInfo, ResponseDebugInfo};
-        
+
         // Generate session ID for debug correlation
         let session_id = DebugConfig::generate_session_id();
-        
+
         // Create a client for this specific endpoint
         let endpoint_client = reqwest::Client::new();
         let mut request = endpoint_client.request(endpoint.get_method(defaults), &endpoint.url);
-        
+
         // Add headers
         let headers = endpoint.get_headers(defaults);
         for (key, value) in &headers {
             request = request.header(key, value);
         }
-        
+
         // Add payload if present
         if let Some(payload) = &endpoint.payload {
             request = request.body(payload.clone());
         }
-        
+
         // Set timeout
-        let timeout_duration = endpoint.get_timeout(defaults).unwrap_or(Duration::from_secs(30));
-        
+        let timeout_duration = endpoint
+            .get_timeout(defaults)
+            .unwrap_or(Duration::from_secs(30));
+
         // Debug: Log request details
         if debug_config.enabled {
             let headers_map = if debug_config.level >= crate::debug::DebugLevel::Headers {
@@ -588,7 +622,7 @@ impl LoadTester {
             } else {
                 None
             };
-            
+
             let request_info = RequestDebugInfo {
                 timestamp: chrono::Utc::now(),
                 method: endpoint.get_method(defaults).to_string(),
@@ -603,15 +637,15 @@ impl LoadTester {
             };
             debug_config.log_request(&request_info, &session_id);
         }
-        
+
         let start_time = std::time::Instant::now();
-        
+
         match timeout(timeout_duration, request.send()).await {
             Ok(Ok(response)) => {
                 let elapsed = start_time.elapsed();
                 let status = response.status().as_u16();
                 let content_length = response.content_length().unwrap_or(0);
-                
+
                 // Debug: Log response details
                 if debug_config.enabled {
                     let response_info = ResponseDebugInfo {
@@ -624,37 +658,43 @@ impl LoadTester {
                     };
                     debug_config.log_response(&response_info, &session_id);
                 }
-                
+
                 // Check if status is expected for this endpoint
                 let is_success = endpoint.is_expected_status(status);
-                
+
                 // Record request in stats
                 let result = RequestResult {
                     timestamp: Utc::now(),
                     duration_ms: elapsed.as_millis() as u64,
                     status_code: Some(status),
-                    error: if is_success { None } else { Some(format!("Unexpected status: {}", status)) },
+                    error: if is_success {
+                        None
+                    } else {
+                        Some(format!("Unexpected status: {}", status))
+                    },
                     user_agent: None,
                     bytes_received: content_length,
                 };
                 stats_collector.record_request(result).await;
-                
-                println!("Endpoint '{}': {} {} in {:?} {}", 
-                         endpoint.name, 
-                         status, 
-                         endpoint.url, 
-                         elapsed,
-                         if is_success { "✓" } else { "✗" });
+
+                println!(
+                    "Endpoint '{}': {} {} in {:?} {}",
+                    endpoint.name,
+                    status,
+                    endpoint.url,
+                    elapsed,
+                    if is_success { "✓" } else { "✗" }
+                );
                 Ok(())
             }
             Ok(Err(e)) => {
                 let elapsed = start_time.elapsed();
-                
+
                 // Debug: Log error details
                 if debug_config.enabled {
                     debug_config.log_error(&e.to_string(), &session_id, elapsed);
                 }
-                
+
                 // Record failed request in stats
                 let result = RequestResult {
                     timestamp: Utc::now(),
@@ -665,18 +705,21 @@ impl LoadTester {
                     bytes_received: 0,
                 };
                 stats_collector.record_request(result).await;
-                
-                eprintln!("Endpoint '{}' request error: {} (took {:?})", endpoint.name, e, elapsed);
+
+                eprintln!(
+                    "Endpoint '{}' request error: {} (took {:?})",
+                    endpoint.name, e, elapsed
+                );
                 Ok(()) // Don't fail the whole test for one request
             }
             Err(_) => {
                 let elapsed = timeout_duration;
-                
+
                 // Debug: Log timeout error
                 if debug_config.enabled {
                     debug_config.log_error("Request timeout", &session_id, elapsed);
                 }
-                
+
                 // Record timeout as failed request
                 let result = RequestResult {
                     timestamp: Utc::now(),
@@ -687,8 +730,11 @@ impl LoadTester {
                     bytes_received: 0,
                 };
                 stats_collector.record_request(result).await;
-                
-                eprintln!("Endpoint '{}' timeout after {:?}", endpoint.name, timeout_duration);
+
+                eprintln!(
+                    "Endpoint '{}' timeout after {:?}",
+                    endpoint.name, timeout_duration
+                );
                 Ok(()) // Don't fail the whole test for timeouts
             }
         }

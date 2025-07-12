@@ -1,46 +1,48 @@
 use crate::port_utils::find_available_port;
-use axum::{
-    response::Html,
-    routing::get,
-    Router,
-};
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use axum::{response::Html, routing::get, Router};
 use std::net::SocketAddr;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
-pub async fn start_web_server(port: u16, websocket_port: Option<u16>) -> Result<u16, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn start_web_server(
+    port: u16,
+    websocket_port: Option<u16>,
+) -> Result<u16, Box<dyn std::error::Error + Send + Sync>> {
     let actual_port = find_available_port(port, 50)
         .ok_or_else(|| format!("Could not find available port starting from {}", port))?;
-    
+
     let app = Router::new()
         .route("/", get(move || serve_index(websocket_port)))
         .nest_service("/assets", ServeDir::new("assets"))
         .layer(CorsLayer::permissive());
 
     let addr = SocketAddr::from(([127, 0, 0, 1], actual_port));
-    
-    let listener = tokio::net::TcpListener::bind(addr).await
+
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
         .map_err(|e| format!("Failed to bind to {}: {}", addr, e))?;
-    
+
     // Spawn the server in the background
     tokio::spawn(async move {
         if let Err(e) = axum::serve(listener, app).await {
             eprintln!("WebUI server error: {}", e);
         }
     });
-    
+
     // Give the server a moment to start
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-    
+
     Ok(actual_port)
 }
 
 async fn serve_index(websocket_port: Option<u16>) -> Html<String> {
     let default_port = 9621;
     let ws_port = websocket_port.unwrap_or(default_port);
-    
-    let html_content = include_str!("../../../assets/index.html")
-        .replace("ws://${window.location.hostname}:9621", &format!("ws://${{window.location.hostname}}:{}", ws_port));
-    
+
+    let html_content = include_str!("../../../assets/index.html").replace(
+        "ws://${window.location.hostname}:9621",
+        &format!("ws://${{window.location.hostname}}:{}", ws_port),
+    );
+
     Html(html_content)
 }
 
@@ -376,5 +378,6 @@ pub fn generate_index_html() -> String {
         run();
     </script>
 </body>
-</html>"#.to_string()
+</html>"#
+        .to_string()
 }

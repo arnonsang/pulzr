@@ -44,8 +44,12 @@ impl MultiEndpointConfig {
         if let Ok(config) = serde_json::from_str::<MultiEndpointConfig>(&content) {
             Ok(config)
         } else {
-            serde_yaml::from_str::<MultiEndpointConfig>(&content)
-                .with_context(|| format!("Failed to parse endpoint config file as JSON or YAML: {:?}", path.as_ref()))
+            serde_yaml::from_str::<MultiEndpointConfig>(&content).with_context(|| {
+                format!(
+                    "Failed to parse endpoint config file as JSON or YAML: {:?}",
+                    path.as_ref()
+                )
+            })
         }
     }
 
@@ -72,13 +76,20 @@ impl MultiEndpointConfig {
         }
 
         // Validate RPS shares if specified
-        let total_rps_share: f64 = self.endpoints
+        let total_rps_share: f64 = self
+            .endpoints
             .iter()
-            .filter_map(|e| e.rps_share.or_else(|| self.defaults.as_ref().and_then(|d| d.rps_share)))
+            .filter_map(|e| {
+                e.rps_share
+                    .or_else(|| self.defaults.as_ref().and_then(|d| d.rps_share))
+            })
             .sum();
 
         if total_rps_share > 0.0 && (total_rps_share - 1.0).abs() > 0.01 {
-            anyhow::bail!("RPS shares must sum to 1.0 (100%), got: {:.2}", total_rps_share);
+            anyhow::bail!(
+                "RPS shares must sum to 1.0 (100%), got: {:.2}",
+                total_rps_share
+            );
         }
 
         Ok(())
@@ -87,7 +98,8 @@ impl MultiEndpointConfig {
 
 impl Endpoint {
     pub fn get_method(&self, defaults: &Option<EndpointDefaults>) -> Method {
-        let method_str = self.method
+        let method_str = self
+            .method
             .as_ref()
             .or_else(|| defaults.as_ref().and_then(|d| d.method.as_ref()))
             .map(|s| s.as_str())

@@ -1,5 +1,5 @@
-use anyhow::{Result, anyhow};
-use chrono::{Utc, Duration};
+use anyhow::{anyhow, Result};
+use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -71,17 +71,19 @@ impl JwtManager {
 
     pub async fn validate_token(&self, token: &str) -> Result<JwtClaims> {
         let config = self.config.read().await;
-        
-        let secret = config.secret.as_ref()
+
+        let secret = config
+            .secret
+            .as_ref()
             .ok_or_else(|| anyhow!("JWT secret not configured"))?;
 
         let decoding_key = DecodingKey::from_secret(secret.as_bytes());
         let mut validation = Validation::new(config.algorithm);
-        
+
         if let Some(iss) = &config.issuer {
             validation.set_issuer(&[iss]);
         }
-        
+
         if let Some(aud) = &config.audience {
             validation.set_audience(&[aud]);
         }
@@ -104,7 +106,7 @@ impl JwtManager {
 
     pub async fn should_refresh_token(&self, token: &str) -> bool {
         let config = self.config.read().await;
-        
+
         if !config.auto_refresh {
             return false;
         }
@@ -121,12 +123,15 @@ impl JwtManager {
 
     pub async fn refresh_token(&self) -> Result<String> {
         let config = self.config.read().await;
-        
-        let refresh_endpoint = config.refresh_endpoint.as_ref()
+
+        let refresh_endpoint = config
+            .refresh_endpoint
+            .as_ref()
             .ok_or_else(|| anyhow!("Refresh endpoint not configured"))?;
 
         let current_token = self.current_token.read().await;
-        let token = current_token.as_ref()
+        let token = current_token
+            .as_ref()
             .ok_or_else(|| anyhow!("No current token to refresh"))?;
 
         // Make a request to the refresh endpoint
@@ -157,13 +162,13 @@ impl JwtManager {
 
     pub async fn ensure_valid_token(&self) -> Result<String> {
         let current_token = self.current_token.read().await;
-        
+
         if let Some(token) = current_token.as_ref() {
             // Check if token needs refresh
             if self.should_refresh_token(token).await {
                 drop(current_token);
                 println!("🔄 Refreshing JWT token...");
-                
+
                 match self.refresh_token().await {
                     Ok(new_token) => {
                         self.set_token(new_token.clone()).await;
@@ -176,7 +181,7 @@ impl JwtManager {
                     }
                 }
             }
-            
+
             // Check if token is still valid
             if !self.is_token_expired(token).await {
                 return Ok(token.clone());
@@ -188,8 +193,10 @@ impl JwtManager {
 
     pub async fn create_token(&self, sub: &str, duration_minutes: i64) -> Result<String> {
         let config = self.config.read().await;
-        
-        let secret = config.secret.as_ref()
+
+        let secret = config
+            .secret
+            .as_ref()
             .ok_or_else(|| anyhow!("JWT secret not configured"))?;
 
         let now = Utc::now();
@@ -261,9 +268,10 @@ impl ApiKeyManager {
             ApiKeyLocation::Header => {
                 (self.config.header_name.clone(), self.config.api_key.clone())
             }
-            ApiKeyLocation::Bearer => {
-                ("Authorization".to_string(), format!("Bearer {}", self.config.api_key))
-            }
+            ApiKeyLocation::Bearer => (
+                "Authorization".to_string(),
+                format!("Bearer {}", self.config.api_key),
+            ),
             ApiKeyLocation::Query => {
                 // This will be handled differently in the client
                 (self.config.header_name.clone(), self.config.api_key.clone())
@@ -289,12 +297,10 @@ impl AuthMethod {
     pub async fn get_auth_header(&self) -> Option<(String, String)> {
         match self {
             AuthMethod::None => None,
-            AuthMethod::Jwt(manager) => {
-                match manager.ensure_valid_token().await {
-                    Ok(token) => Some(("Authorization".to_string(), format!("Bearer {}", token))),
-                    Err(_) => None,
-                }
-            }
+            AuthMethod::Jwt(manager) => match manager.ensure_valid_token().await {
+                Ok(token) => Some(("Authorization".to_string(), format!("Bearer {}", token))),
+                Err(_) => None,
+            },
             AuthMethod::ApiKey(manager) => {
                 match manager.get_location() {
                     ApiKeyLocation::Query => None, // Handled in URL
@@ -306,15 +312,13 @@ impl AuthMethod {
 
     pub async fn get_query_params(&self) -> Option<(String, String)> {
         match self {
-            AuthMethod::ApiKey(manager) => {
-                match manager.get_location() {
-                    ApiKeyLocation::Query => Some((
-                        manager.get_header_name().to_string(),
-                        manager.get_api_key().to_string(),
-                    )),
-                    _ => None,
-                }
-            }
+            AuthMethod::ApiKey(manager) => match manager.get_location() {
+                ApiKeyLocation::Query => Some((
+                    manager.get_header_name().to_string(),
+                    manager.get_api_key().to_string(),
+                )),
+                _ => None,
+            },
             _ => None,
         }
     }

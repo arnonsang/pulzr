@@ -195,7 +195,7 @@ async fn handle_connection(
                 }
             };
 
-            if let Err(e) = ws_sender.send(Message::Text(json)).await {
+            if let Err(e) = ws_sender.send(Message::Text(json.into())).await {
                 eprintln!("Failed to send WebSocket message: {}", e);
                 break;
             }

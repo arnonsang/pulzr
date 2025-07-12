@@ -7,8 +7,8 @@ use crate::scenario::{Scenario, ScenarioStep};
 use crate::stats::{RequestResult, StatsCollector};
 use anyhow::Result;
 use chrono::Utc;
-use rand::distributions::WeightedIndex;
-use rand::prelude::*;
+use rand::rng;
+use rand_distr::{weighted::WeightedIndex, Distribution};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -343,7 +343,7 @@ impl LoadTester {
         endpoint_data: &Option<(Vec<Endpoint>, Option<WeightedIndex<f64>>)>,
     ) -> Option<Arc<Vec<usize>>> {
         if scenario_data.is_some() || endpoint_data.is_some() {
-            let mut rng = thread_rng();
+            let mut rng = rng();
             let indices: Vec<usize> = (0..10000)
                 .map(|_| {
                     if let Some((_, Some(weighted_index))) = scenario_data {

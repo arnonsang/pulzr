@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rand::seq::SliceRandom;
+use rand::prelude::*;
 use std::fs;
 use std::path::Path;
 
@@ -28,7 +28,7 @@ impl UserAgentManager {
 
     pub fn get_user_agent(&self) -> &str {
         if self.use_random && self.agents.len() > 1 {
-            self.agents.choose(&mut rand::thread_rng()).unwrap()
+            self.agents.choose(&mut rand::rng()).unwrap()
         } else {
             &self.agents[0]
         }

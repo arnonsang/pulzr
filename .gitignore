@@ -219,9 +219,10 @@ missing
 # pkg-config
 *.pc
 
-# Core dumps
-core
-core.*
+# Core dumps (but not our src/core module)
+/core
+core.dump
+core.[0-9]*
 
 # Memory dumps
 *.dmp

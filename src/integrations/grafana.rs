@@ -44,8 +44,7 @@ impl GrafanaManager {
 
     /// Load a dashboard from file
     pub fn load_dashboard(&self, dashboard_name: &str) -> Result<GrafanaDashboard> {
-        let dashboard_path =
-            Path::new(&self.dashboards_dir).join(format!("{dashboard_name}.json"));
+        let dashboard_path = Path::new(&self.dashboards_dir).join(format!("{dashboard_name}.json"));
 
         if !dashboard_path.exists() {
             return Err(anyhow::anyhow!(

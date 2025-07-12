@@ -24,9 +24,8 @@ mod tests {
     fn test_is_port_available_with_free_port() {
         // Test with a high port number that's likely to be free
         let port = 45000;
-        let available = is_port_available(port);
+        let _available = is_port_available(port);
         // We can't guarantee the port is free, but this tests the function
-        assert!(available == true || available == false);
     }
 
     #[test]
@@ -125,8 +124,8 @@ mod tests {
     #[test]
     fn test_edge_case_ports() {
         // Test some edge case port numbers
-        assert!(is_port_available(0) == true || is_port_available(0) == false);
-        assert!(is_port_available(65535) == true || is_port_available(65535) == false);
+        assert!(is_port_available(0) || !is_port_available(0));
+        assert!(is_port_available(65535) || !is_port_available(65535));
     }
 
     #[test]

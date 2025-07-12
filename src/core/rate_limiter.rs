@@ -95,7 +95,7 @@ mod tests {
         }
 
         // If we get here, the rate limiter is working (not hanging/panicking)
-        assert!(true);
+        // Test passes as the limiter doesn't block when RPS is high
     }
 
     #[test]

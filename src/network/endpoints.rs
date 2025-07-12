@@ -157,7 +157,7 @@ impl Endpoint {
             expected.contains(&status)
         } else {
             // Default to 2xx status codes
-            status >= 200 && status < 300
+            (200..300).contains(&status)
         }
     }
 }

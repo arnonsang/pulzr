@@ -27,7 +27,7 @@ impl RampUpConfig {
         }
 
         let progress = elapsed.as_secs_f64() / self.duration.as_secs_f64();
-        let normalized_progress = progress.min(1.0).max(0.0);
+        let normalized_progress = progress.clamp(0.0, 1.0);
 
         let concurrency_ratio = match self.pattern {
             RampPattern::Linear => normalized_progress,
@@ -84,7 +84,7 @@ mod tests {
         let mid_start = Instant::now() - Duration::from_secs(2);
         let mid_concurrency = config.current_concurrency(mid_start);
         // Linear ramp: 50% of 10 = 5, but with ceil() it might be 6
-        assert!(mid_concurrency >= 5 && mid_concurrency <= 6);
+        assert!((5..=6).contains(&mid_concurrency));
 
         // 100% progress (past end) - simulate by using a start time 4+ seconds ago
         let end_start = Instant::now() - Duration::from_secs(5);

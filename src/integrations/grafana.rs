@@ -119,6 +119,7 @@ impl GrafanaManager {
     pub fn generate_import_instructions(&self, dashboard_name: &str) -> Result<String> {
         let info = self.get_dashboard_info(dashboard_name)?;
 
+        #[allow(clippy::format_in_format_args)]
         let instructions = format!(
             r#"# Import Instructions for {dashboard_name}
 

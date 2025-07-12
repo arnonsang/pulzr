@@ -69,6 +69,12 @@ pub struct LatencyHistogram {
     pub total_count: u64,
 }
 
+impl Default for LatencyHistogram {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LatencyHistogram {
     pub fn new() -> Self {
         // Define histogram buckets: 0-10ms, 10-50ms, 50-100ms, 100-250ms, 250-500ms, 500-1000ms, 1000-2000ms, 2000-5000ms, 5000+ms
@@ -161,6 +167,12 @@ pub struct StatsCollector {
     active_alerts: Arc<RwLock<Vec<Alert>>>,
     start_time: DateTime<Utc>,
     request_log_sender: Option<broadcast::Sender<crate::websocket::WebSocketMessage>>,
+}
+
+impl Default for StatsCollector {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl StatsCollector {

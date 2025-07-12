@@ -17,7 +17,7 @@ impl CsvExporter {
         let results = self.stats_collector.results.read().await;
         let mut writer = Writer::from_path(path)?;
 
-        writer.write_record(&[
+        writer.write_record([
             "timestamp",
             "duration_ms",
             "status_code",
@@ -45,49 +45,49 @@ impl CsvExporter {
         let summary = self.stats_collector.get_final_summary().await;
         let mut writer = Writer::from_path(path)?;
 
-        writer.write_record(&["metric", "value"])?;
+        writer.write_record(["metric", "value"])?;
 
-        writer.write_record(&["total_requests", &summary.total_requests.to_string()])?;
-        writer.write_record(&[
+        writer.write_record(["total_requests", &summary.total_requests.to_string()])?;
+        writer.write_record([
             "successful_requests",
             &summary.successful_requests.to_string(),
         ])?;
-        writer.write_record(&["failed_requests", &summary.failed_requests.to_string()])?;
-        writer.write_record(&[
+        writer.write_record(["failed_requests", &summary.failed_requests.to_string()])?;
+        writer.write_record([
             "test_duration_secs",
             &format!("{:.2}", summary.test_duration_secs),
         ])?;
-        writer.write_record(&["avg_rps", &format!("{:.2}", summary.avg_rps)])?;
-        writer.write_record(&[
+        writer.write_record(["avg_rps", &format!("{:.2}", summary.avg_rps)])?;
+        writer.write_record([
             "avg_response_time",
             &format!("{:.2}", summary.avg_response_time),
         ])?;
-        writer.write_record(&["min_response_time", &summary.min_response_time.to_string()])?;
-        writer.write_record(&["max_response_time", &summary.max_response_time.to_string()])?;
-        writer.write_record(&["p50_response_time", &summary.p50_response_time.to_string()])?;
-        writer.write_record(&["p95_response_time", &summary.p95_response_time.to_string()])?;
-        writer.write_record(&["p99_response_time", &summary.p99_response_time.to_string()])?;
-        writer.write_record(&[
+        writer.write_record(["min_response_time", &summary.min_response_time.to_string()])?;
+        writer.write_record(["max_response_time", &summary.max_response_time.to_string()])?;
+        writer.write_record(["p50_response_time", &summary.p50_response_time.to_string()])?;
+        writer.write_record(["p95_response_time", &summary.p95_response_time.to_string()])?;
+        writer.write_record(["p99_response_time", &summary.p99_response_time.to_string()])?;
+        writer.write_record([
             "total_bytes_received",
             &summary.total_bytes_received.to_string(),
         ])?;
 
-        writer.write_record(&["", ""])?;
-        writer.write_record(&["status_codes", "count"])?;
+        writer.write_record(["", ""])?;
+        writer.write_record(["status_codes", "count"])?;
         for (code, count) in &summary.status_codes {
-            writer.write_record(&[&code.to_string(), &count.to_string()])?;
+            writer.write_record([&code.to_string(), &count.to_string()])?;
         }
 
-        writer.write_record(&["", ""])?;
-        writer.write_record(&["errors", "count"])?;
+        writer.write_record(["", ""])?;
+        writer.write_record(["errors", "count"])?;
         for (error, count) in &summary.errors {
-            writer.write_record(&[error, &count.to_string()])?;
+            writer.write_record([error, &count.to_string()])?;
         }
 
-        writer.write_record(&["", ""])?;
-        writer.write_record(&["user_agents", "count"])?;
+        writer.write_record(["", ""])?;
+        writer.write_record(["user_agents", "count"])?;
         for (ua, count) in &summary.user_agents_used {
-            writer.write_record(&[ua, &count.to_string()])?;
+            writer.write_record([ua, &count.to_string()])?;
         }
 
         writer.flush()?;

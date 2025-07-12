@@ -142,7 +142,7 @@ mod tests {
 
         // With random selection, we should get some variety (though not guaranteed)
         // This test might occasionally fail due to randomness, but very unlikely
-        assert!(agents.len() >= 1);
+        assert!(!agents.is_empty());
     }
 
     #[test]
@@ -150,7 +150,7 @@ mod tests {
         let mut temp_file = NamedTempFile::new()?;
         writeln!(temp_file, "Agent1/1.0")?;
         writeln!(temp_file, "Agent2/2.0")?;
-        writeln!(temp_file, "")?; // Empty line should be filtered out
+        writeln!(temp_file)?; // Empty line should be filtered out
         writeln!(temp_file, "Agent3/3.0")?;
         temp_file.flush()?;
 

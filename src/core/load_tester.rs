@@ -303,6 +303,7 @@ impl LoadTester {
         Ok(())
     }
 
+    #[allow(clippy::type_complexity)]
     fn prepare_request_data(
         &self,
     ) -> (

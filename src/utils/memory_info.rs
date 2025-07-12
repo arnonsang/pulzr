@@ -1,4 +1,6 @@
+#[cfg(target_os = "linux")]
 use std::fs;
+#[cfg(target_os = "linux")]
 use std::io::{BufRead, BufReader};
 
 #[derive(Debug, Clone)]

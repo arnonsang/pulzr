@@ -114,7 +114,7 @@ impl Http2Config {
         }
 
         if let Some(frame_size) = self.max_frame_size {
-            if frame_size < 16384 || frame_size > 16777215 {
+            if !(16384..=16777215).contains(&frame_size) {
                 return Err(anyhow::anyhow!(
                     "HTTP/2 max frame size must be between 16384 and 16777215 bytes"
                 ));
@@ -296,23 +296,29 @@ mod tests {
 
     #[test]
     fn test_invalid_config() {
-        let mut config = Http2Config::default();
-        config.enabled = true;
-        config.http1_only = true;
+        let config = Http2Config {
+            enabled: true,
+            http1_only: true,
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
     }
 
     #[test]
     fn test_invalid_window_size() {
-        let mut config = Http2Config::default();
-        config.initial_connection_window_size = Some(1000); // Too small
+        let config = Http2Config {
+            initial_connection_window_size: Some(1000), // Too small
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
     }
 
     #[test]
     fn test_invalid_frame_size() {
-        let mut config = Http2Config::default();
-        config.max_frame_size = Some(1000); // Too small
+        let config = Http2Config {
+            max_frame_size: Some(1000), // Too small
+            ..Default::default()
+        };
         assert!(config.validate().is_err());
     }
 

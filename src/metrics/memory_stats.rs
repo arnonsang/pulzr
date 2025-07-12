@@ -239,7 +239,7 @@ impl MemoryOptimizedStatsCollector {
         if let Some(status_code) = result.status_code {
             *stats.status_code_counts.entry(status_code).or_insert(0) += 1;
 
-            if status_code >= 200 && status_code < 400 {
+            if (200..400).contains(&status_code) {
                 stats.successful_requests += 1;
             } else {
                 stats.failed_requests += 1;

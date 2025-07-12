@@ -105,9 +105,11 @@ impl HttpClient {
             {
                 request_builder = request_builder.body(payload.clone());
 
-                if !self.headers.contains_key("content-type") && (payload.trim_start().starts_with('{') || payload.trim_start().starts_with('[')) {
-                    request_builder =
-                        request_builder.header("Content-Type", "application/json");
+                if !self.headers.contains_key("content-type")
+                    && (payload.trim_start().starts_with('{')
+                        || payload.trim_start().starts_with('['))
+                {
+                    request_builder = request_builder.header("Content-Type", "application/json");
                 }
             }
         }

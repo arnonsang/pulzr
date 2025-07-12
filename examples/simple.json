@@ -1,0 +1,42 @@
+{
+  "name": "Simple API Test",
+  "description": "Basic API endpoint testing scenario",
+  "version": "1.0",
+  "variables": {
+    "host": "httpbin.org",
+    "api_version": "v1"
+  },
+  "defaults": {
+    "concurrent": 5,
+    "duration": 30,
+    "rps": 10,
+    "timeout": 10,
+    "headers": {
+      "User-Agent": "pulzr-scenario/1.0"
+    }
+  },
+  "steps": [
+    {
+      "name": "Get User Info",
+      "url": "https://${host}/get",
+      "method": "GET",
+      "weight": 3.0
+    },
+    {
+      "name": "Health Check",
+      "url": "https://${host}/status/200",
+      "method": "GET",
+      "weight": 1.0
+    },
+    {
+      "name": "Post Data",
+      "url": "https://${host}/post",
+      "method": "POST",
+      "payload": "{\"test\": \"data\", \"timestamp\": \"${timestamp}\"}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "weight": 2.0
+    }
+  ]
+}

@@ -124,21 +124,21 @@ impl CsvExporter {
         if !summary.status_codes.is_empty() {
             println!("\nStatus Codes:");
             for (code, count) in &summary.status_codes {
-                println!("  {}: {}", code, count);
+                println!("  {code}: {count}");
             }
         }
 
         if !summary.errors.is_empty() {
             println!("\nErrors:");
             for (error, count) in &summary.errors {
-                println!("  {}: {}", error, count);
+                println!("  {error}: {count}");
             }
         }
 
         if !summary.user_agents_used.is_empty() && summary.user_agents_used.len() > 1 {
             println!("\nUser Agents Used:");
             for (ua, count) in &summary.user_agents_used {
-                println!("  {}: {}", ua, count);
+                println!("  {ua}: {count}");
             }
         }
     }

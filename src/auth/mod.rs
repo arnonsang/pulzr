@@ -138,7 +138,7 @@ impl JwtManager {
         let client = reqwest::Client::new();
         let response = client
             .post(refresh_endpoint)
-            .header("Authorization", format!("Bearer {}", token))
+            .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
             .map_err(|e| anyhow!("Token refresh request failed: {}", e))?;
@@ -176,7 +176,7 @@ impl JwtManager {
                         return Ok(new_token);
                     }
                     Err(e) => {
-                        println!("⚠️  JWT token refresh failed: {}", e);
+                        println!("⚠️  JWT token refresh failed: {e}");
                         return Err(e);
                     }
                 }
@@ -298,7 +298,7 @@ impl AuthMethod {
         match self {
             AuthMethod::None => None,
             AuthMethod::Jwt(manager) => match manager.ensure_valid_token().await {
-                Ok(token) => Some(("Authorization".to_string(), format!("Bearer {}", token))),
+                Ok(token) => Some(("Authorization".to_string(), format!("Bearer {token}"))),
                 Err(_) => None,
             },
             AuthMethod::ApiKey(manager) => {

@@ -1,3 +1,5 @@
+#![allow(clippy::uninlined_format_args)]
+
 use anyhow::Result;
 use clap::Parser;
 use pulzr::{
@@ -345,7 +347,6 @@ async fn main() -> Result<()> {
 
         let webui_port = if cli.webui {
             let webui_port = cli.webui_port;
-            let ws_port = ws_port; // Pass the actual WebSocket port
             tokio::spawn(async move {
                 match start_web_server(webui_port, ws_port).await {
                     Ok(port) => Some(port),
@@ -424,7 +425,7 @@ async fn main() -> Result<()> {
 
     let quit_sender_clone = quit_sender.clone();
     tokio::spawn(async move {
-        if let Ok(_) = signal::ctrl_c().await {
+        if (signal::ctrl_c().await).is_ok() {
             let _ = quit_sender_clone.send(());
         }
     });

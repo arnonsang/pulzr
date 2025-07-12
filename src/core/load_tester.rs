@@ -265,7 +265,7 @@ impl LoadTester {
                         // Tasks will naturally complete and not be replaced
 
                         last_concurrency = current_concurrency;
-                        println!("Ramp-up progress: {} concurrent workers", current_concurrency);
+                        println!("Ramp-up progress: {current_concurrency} concurrent workers");
                     }
 
                     // Check if ramp-up is complete
@@ -276,7 +276,7 @@ impl LoadTester {
                         if let Some(duration) = self.test_duration {
                             let remaining = duration.saturating_sub(start_time.elapsed());
                             if remaining > Duration::from_secs(0) {
-                                println!("Continuing test for remaining {:?}", remaining);
+                                println!("Continuing test for remaining {remaining:?}");
                                 tokio::select! {
                                     _ = sleep(remaining) => {},
                                     _ = quit_receiver.recv() => {
@@ -671,7 +671,7 @@ impl LoadTester {
                     error: if is_success {
                         None
                     } else {
-                        Some(format!("Unexpected status: {}", status))
+                        Some(format!("Unexpected status: {status}"))
                     },
                     user_agent: None,
                     bytes_received: content_length,

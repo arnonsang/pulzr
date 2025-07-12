@@ -90,7 +90,7 @@ impl WebSocketServer {
                 addr, self.port
             );
         } else {
-            println!("WebSocket server listening on: ws://{}", addr);
+            println!("WebSocket server listening on: ws://{addr}");
         }
 
         let stats_collector = Arc::clone(&self.stats_collector);
@@ -159,7 +159,7 @@ async fn handle_connection(
     let ws_stream = match accept_async(stream).await {
         Ok(ws_stream) => ws_stream,
         Err(e) => {
-            eprintln!("WebSocket connection error: {}", e);
+            eprintln!("WebSocket connection error: {e}");
             return;
         }
     };
@@ -170,14 +170,14 @@ async fn handle_connection(
         while let Some(msg) = ws_receiver.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    println!("Received: {}", text);
+                    println!("Received: {text}");
                 }
                 Ok(Message::Close(_)) => {
                     println!("WebSocket connection closed");
                     break;
                 }
                 Err(e) => {
-                    eprintln!("WebSocket error: {}", e);
+                    eprintln!("WebSocket error: {e}");
                     break;
                 }
                 _ => {}
@@ -190,13 +190,13 @@ async fn handle_connection(
             let json = match serde_json::to_string(&message) {
                 Ok(json) => json,
                 Err(e) => {
-                    eprintln!("Failed to serialize message: {}", e);
+                    eprintln!("Failed to serialize message: {e}");
                     continue;
                 }
             };
 
             if let Err(e) = ws_sender.send(Message::Text(json.into())).await {
-                eprintln!("Failed to send WebSocket message: {}", e);
+                eprintln!("Failed to send WebSocket message: {e}");
                 break;
             }
         }

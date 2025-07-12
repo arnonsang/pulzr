@@ -184,8 +184,8 @@ impl PrometheusMetrics {
             let counter = status_counters.entry(*status_code).or_insert_with(|| {
                 let counter = IntCounter::with_opts(
                     Opts::new(
-                        format!("pulzr_status_code_{}_total", status_code),
-                        format!("Total requests with status code {}", status_code),
+                        format!("pulzr_status_code_{status_code}_total"),
+                        format!("Total requests with status code {status_code}"),
                     )
                     .namespace("pulzr"),
                 )
@@ -193,7 +193,7 @@ impl PrometheusMetrics {
 
                 // Register the counter with the registry
                 if let Err(e) = self.registry.register(Box::new(counter.clone())) {
-                    eprintln!("Failed to register status code counter: {}", e);
+                    eprintln!("Failed to register status code counter: {e}");
                 }
 
                 counter

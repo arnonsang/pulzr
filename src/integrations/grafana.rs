@@ -45,7 +45,7 @@ impl GrafanaManager {
     /// Load a dashboard from file
     pub fn load_dashboard(&self, dashboard_name: &str) -> Result<GrafanaDashboard> {
         let dashboard_path =
-            Path::new(&self.dashboards_dir).join(format!("{}.json", dashboard_name));
+            Path::new(&self.dashboards_dir).join(format!("{dashboard_name}.json"));
 
         if !dashboard_path.exists() {
             return Err(anyhow::anyhow!(
@@ -77,7 +77,7 @@ impl GrafanaManager {
             let entry = entry?;
             let path = entry.path();
 
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "json") {
+            if path.is_file() && path.extension().is_some_and(|ext| ext == "json") {
                 if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
                     dashboards.push(name.to_string());
                 }
@@ -317,7 +317,7 @@ mod tests {
         let manager = GrafanaManager::new(Some(dashboards_dir.to_string_lossy().to_string()));
         let issues = manager.validate_dashboard("test-dashboard").unwrap();
 
-        assert!(issues.is_empty(), "Dashboard should be valid: {:?}", issues);
+        assert!(issues.is_empty(), "Dashboard should be valid: {issues:?}");
     }
 
     #[test]

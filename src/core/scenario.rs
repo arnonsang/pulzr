@@ -94,7 +94,7 @@ impl Scenario {
 
         if let Some(variables) = &self.variables {
             for (key, value) in variables {
-                let pattern = format!("${{{}}}", key);
+                let pattern = format!("${{{key}}}");
                 result = result.replace(&pattern, value);
             }
         }

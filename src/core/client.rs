@@ -82,7 +82,7 @@ impl HttpClient {
         // Handle query parameter authentication
         if let Some((key, value)) = self.auth_method.get_query_params().await {
             let separator = if url.contains('?') { "&" } else { "?" };
-            url = format!("{}{}{}={}", url, separator, key, value);
+            url = format!("{url}{separator}{key}={value}");
         }
 
         let mut request_builder = self.client.request(self.method.clone(), &url);

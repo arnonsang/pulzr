@@ -1,3 +1,5 @@
+#![allow(clippy::uninlined_format_args)]
+
 // Core modules
 pub mod auth;
 pub mod cli;

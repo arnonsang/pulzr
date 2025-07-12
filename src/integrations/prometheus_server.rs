@@ -38,12 +38,9 @@ impl PrometheusServer {
 
         let listener = tokio::net::TcpListener::bind(addr)
             .await
-            .map_err(|e| format!("Failed to bind Prometheus server to {}: {}", addr, e))?;
+            .map_err(|e| format!("Failed to bind Prometheus server to {addr}: {e}"))?;
 
-        println!(
-            "📊 Prometheus metrics server listening on: http://{}/metrics",
-            addr
-        );
+        println!("📊 Prometheus metrics server listening on: http://{addr}/metrics");
 
         // Spawn background task to update metrics periodically
         let exporter_clone = Arc::clone(&self.exporter);
@@ -52,7 +49,7 @@ impl PrometheusServer {
             loop {
                 interval.tick().await;
                 if let Err(e) = exporter_clone.update_from_stats().await {
-                    eprintln!("Failed to update Prometheus metrics: {}", e);
+                    eprintln!("Failed to update Prometheus metrics: {e}");
                 }
             }
         });
@@ -60,7 +57,7 @@ impl PrometheusServer {
         // Spawn the server
         let server_task = tokio::spawn(async move {
             if let Err(e) = axum::serve(listener, app).await {
-                eprintln!("Prometheus server error: {}", e);
+                eprintln!("Prometheus server error: {e}");
             }
         });
 
@@ -82,7 +79,7 @@ async fn metrics_handler(State(exporter): State<Arc<PrometheusExporter>>) -> Res
         Ok(metrics) => (StatusCode::OK, metrics).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to export metrics: {}", e),
+            format!("Failed to export metrics: {e}"),
         )
             .into_response(),
     }

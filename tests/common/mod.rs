@@ -17,11 +17,11 @@ pub struct MockHttpServer {
 impl MockHttpServer {
     pub fn new() -> Self {
         let port = get_free_port();
-        let base_url = format!("http://127.0.0.1:{}", port);
+        let base_url = format!("http://127.0.0.1:{port}");
         Self { port, base_url }
     }
 
     pub fn url(&self, path: &str) -> String {
-        format!("{}{}", self.base_url, path)
+        format!("{}{path}", self.base_url)
     }
 }

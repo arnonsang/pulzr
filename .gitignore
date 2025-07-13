@@ -1,0 +1,294 @@
+# Rust/Cargo Build Artifacts
+/target/
+**/target/
+Cargo.lock
+**/Cargo.lock
+
+# Build outputs
+*.rlib
+*.rmeta
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Rust analyzer artifacts
+.rust-analyzer/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.local.json
+
+# Logs
+*.log
+logs/
+
+# Test artifacts
+*.profraw
+*.profdata
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+*.temp
+
+# OS generated files
+Icon?
+._*
+
+# Coverage reports
+tarpaulin-report.html
+cobertura.xml
+lcov.info
+
+# Benchmark results
+criterion/
+flamegraph.svg
+perf.data*
+
+# Documentation build
+/docs/book/
+/docs/nomicon/
+/docs/reference/
+/docs/unstable-book/
+
+# RustRover (JetBrains Rust IDE)
+.fleet/
+
+# Configuration files that might contain secrets
+config.toml
+Config.toml
+.config/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Project-specific files
+*.csv
+dashboard_*.json
+
+# Exclude all internal docs (MD files) except README
+*.md
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
+
+# Rust edition migration artifacts
+*.orig
+
+# Profiling
+perf.data
+perf.data.old
+
+# AddressSanitizer
+*san.*
+
+# Valgrind
+vgcore.*
+callgrind.out.*
+massif.out.*
+
+# Docker
+.dockerignore
+Dockerfile.tmp
+
+# Package managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if using Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+
+# Go (if using Go tools)
+*.mod
+*.sum
+
+# Java (if using Java tools)
+*.class
+*.jar
+*.war
+*.ear
+
+# Editors
+*.kate-swp
+.*.swp
+.*.swo
+
+# Vim
+*.vim
+.vimrc.local
+
+# Emacs
+*#
+.#*
+\#*#
+.*.rej
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Atom
+.atom/
+
+# CLion
+cmake-build-*/
+
+# Local history (IntelliJ)
+.history/
+
+# JetBrains IDEs
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Eclipse
+.metadata
+.classpath
+.project
+.settings/
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Gradle
+.gradle/
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+
+# Autotools
+Makefile.in
+aclocal.m4
+compile
+configure
+depcomp
+install-sh
+missing
+
+# pkg-config
+*.pc
+
+# Memory dumps
+*.dmp
+
+# System files
+*.pid
+*.seed
+*.gz
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.test
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Custom application files
+pulzr_*.csv
+test_results/
+output/
+exports/
+reports/
+dashboards/*.backup

@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ Pulzr - Load Testing Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            background: #0a0a0a;
+            color: #e4e4e7;
+            min-height: 100vh;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+        }
+
+        .status-label {
+            color: #71717a;
+        }
+
+        .status-value {
+            background: #10b981;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .panel {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 6px;
+            padding: 16px;
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            margin-bottom: 12px;
+            color: #10b981;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1px;
+            background: #27272a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .config-item {
+            background: #18181b;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+
+        .config-item .label {
+            color: #71717a;
+        }
+
+        .config-item .value {
+            color: #e4e4e7;
+            font-weight: 500;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .metric-card {
+            background: #27272a;
+            border: 1px solid #3f3f46;
+            border-radius: 4px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #10b981;
+            margin-bottom: 2px;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .range-info {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            font-size: 0.875rem;
+        }
+
+        .range-info span {
+            color: #71717a;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .status-item {
+            background: #27272a;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        .status-item.success {
+            border-left: 3px solid #10b981;
+        }
+
+        .status-item.redirect {
+            border-left: 3px solid #f59e0b;
+        }
+
+        .status-item.client-error, .status-item.server-error {
+            border-left: 3px solid #ef4444;
+        }
+
+        .status-code {
+            display: block;
+            font-weight: 600;
+            color: #e4e4e7;
+        }
+
+        .status-count {
+            display: block;
+            font-size: 0.75rem;
+            color: #71717a;
+        }
+
+        .error-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .error-item {
+            background: #27272a;
+            border-left: 3px solid #ef4444;
+            border-radius: 0 4px 4px 0;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+        }
+
+        .error-message {
+            color: #fca5a5;
+        }
+
+        .error-count {
+            background: #ef4444;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .summary-section h3 {
+            margin-bottom: 8px;
+            color: #10b981;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #27272a;
+            font-size: 0.875rem;
+        }
+
+        .stat:last-child {
+            border-bottom: none;
+        }
+
+        .stat .label {
+            color: #71717a;
+        }
+
+        .stat .value {
+            color: #e4e4e7;
+            font-weight: 500;
+        }
+
+        .stat .value.success {
+            color: #10b981;
+        }
+
+        .stat .value.error {
+            color: #ef4444;
+        }
+
+        .waiting, .connection-info {
+            text-align: center;
+            padding: 40px 20px;
+            color: #71717a;
+            font-size: 0.875rem;
+        }
+
+        .connection-info {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .connection-info h3 {
+            color: #10b981;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+        }
+
+        code {
+            background: #27272a;
+            color: #10b981;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+
+
+        .logs-container {
+            background: #0a0a0a;
+            border: 1px solid #27272a;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.75rem;
+        }
+
+        .log-entry {
+            padding: 4px 8px;
+            border-bottom: 1px solid #18181b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry.success {
+            color: #10b981;
+        }
+
+        .log-entry.redirect {
+            color: #f59e0b;
+        }
+
+        .log-entry.error {
+            color: #ef4444;
+        }
+
+        .log-timestamp {
+            color: #71717a;
+            font-size: 0.7rem;
+        }
+
+        .log-status {
+            font-weight: 600;
+        }
+
+        .log-details {
+            color: #e4e4e7;
+        }
+
+        .histogram-container {
+            margin: 8px 0;
+        }
+
+        .histogram-bars {
+            display: flex;
+            align-items: end;
+            gap: 2px;
+            height: 120px;
+            padding: 8px;
+            background: #0a0a0a;
+            border-radius: 4px;
+            border: 1px solid #27272a;
+        }
+
+        .histogram-bar {
+            flex: 1;
+            background: #10b981;
+            min-height: 2px;
+            border-radius: 2px 2px 0 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: end;
+            align-items: center;
+            position: relative;
+        }
+
+        .histogram-bar-fill {
+            width: 100%;
+            background: linear-gradient(to top, #10b981, #34d399);
+            border-radius: 2px 2px 0 0;
+            transition: height 0.3s ease;
+        }
+
+        .histogram-bar-label {
+            position: absolute;
+            bottom: -20px;
+            font-size: 0.65rem;
+            color: #71717a;
+            text-align: center;
+            white-space: nowrap;
+            transform: rotate(-45deg);
+            transform-origin: center;
+        }
+
+        .histogram-bar-count {
+            position: absolute;
+            top: -16px;
+            font-size: 0.7rem;
+            color: #e4e4e7;
+            font-weight: 500;
+        }
+
+        .histogram-placeholder {
+            color: #71717a;
+            font-size: 0.875rem;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .alert-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid;
+            background: #27272a;
+        }
+
+        .alert-item.warning {
+            border-color: #f59e0b;
+            background: linear-gradient(135deg, #27272a, #2a2416);
+        }
+
+        .alert-item.critical {
+            border-color: #ef4444;
+            background: linear-gradient(135deg, #27272a, #2a1616);
+        }
+
+        .alert-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-message {
+            color: #e4e4e7;
+            font-size: 0.875rem;
+            margin-bottom: 4px;
+        }
+
+        .alert-timestamp {
+            color: #71717a;
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>pulzr ⚡</h1>
+            <div class="status">
+                <span class="status-label">status:</span>
+                <span class="status-value" id="ws-status">connecting</span>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="connection-info">
+                <h3>websocket connection</h3>
+                <p>connecting to ws server for real-time metrics</p>
+                <p>run pulzr with <code>--webui</code> flag to enable dashboard</p>
+            </div>
+
+            <div id="app">
+                <div class="waiting">
+                    <p>starting websocket connection...</p>
+                    <p>if this persists, ensure pulzr is running with <code>--webui</code> flag</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let ws;
+        let testConfig = null;
+        let currentMetrics = null;
+        let testSummary = null;
+        let requestLogs = [];
+        const maxLogs = 100;
+
+        function updateStatus(status) {
+            const statusElement = document.getElementById('ws-status');
+            statusElement.textContent = status.toLowerCase();
+            
+            // Update status color
+            statusElement.className = 'status-value';
+            if (status === 'connected' || status === 'running') {
+                statusElement.style.backgroundColor = '#10b981'; // Green
+            } else if (status === 'disconnected' || status === 'error') {
+                statusElement.style.backgroundColor = '#ef4444'; // Red
+            } else if (status === 'completed') {
+                statusElement.style.backgroundColor = '#06b6d4'; // Blue
+            } else {
+                statusElement.style.backgroundColor = '#f59e0b'; // Orange for connecting
+            }
+            
+            updateConnectionInfo(status);
+        }
+
+        function updateConnectionInfo(status) {
+            const connectionInfo = document.querySelector('.connection-info');
+            if (!connectionInfo) return;
+            
+            if (status === 'connected') {
+                connectionInfo.innerHTML = `
+                    <h3>websocket connection</h3>
+                    <p>✅ connected to ws server</p>
+                    <p>real-time metrics streaming active</p>
+                `;
+            } else if (status === 'disconnected') {
+                connectionInfo.innerHTML = `
+                    <h3>websocket connection</h3>
+                    <p>❌ disconnected from ws server</p>
+                    <p>attempting to reconnect...</p>
+                `;
+            } else if (status === 'error') {
+                connectionInfo.innerHTML = `
+                    <h3>websocket connection</h3>
+                    <p>⚠️ connection error</p>
+                    <p>check if pulzr is running with <code>--webui</code> flag</p>
+                `;
+            } else {
+                connectionInfo.innerHTML = `
+                    <h3>websocket connection</h3>
+                    <p>🔄 connecting to ws server for real-time metrics</p>
+                    <p>run pulzr with <code>--webui</code> flag to enable dashboard</p>
+                `;
+            }
+        }
+
+        function formatBytes(bytes) {
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = bytes;
+            let unitIndex = 0;
+            
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+            
+            return unitIndex === 0 ? `${bytes}${units[unitIndex]}` : `${size.toFixed(1)}${units[unitIndex]}`;
+        }
+
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.hostname}:9621`;
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                updateStatus('connected');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    handleWebSocketMessage(message);
+                } catch (e) {
+                    console.error('failed to parse websocket message:', e);
+                }
+            };
+            
+            ws.onclose = function() {
+                updateStatus('disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = function() {
+                updateStatus('error');
+            };
+        }
+
+        function handleWebSocketMessage(message) {
+            switch (message.type) {
+                case 'test_started':
+                    testConfig = message.config;
+                    updateStatus('running');
+                    renderTestConfig();
+                    break;
+                    
+                case 'metrics_update':
+                    currentMetrics = message.metrics;
+                    renderMetrics();
+                    break;
+                    
+                case 'request_log':
+                    addRequestLog(message.log);
+                    break;
+                    
+                case 'test_completed':
+                    testSummary = message.summary;
+                    updateStatus('completed');
+                    renderSummary();
+                    break;
+                    
+                case 'error_event':
+                    console.error('test error:', message.error);
+                    break;
+            }
+        }
+
+        function addRequestLog(log) {
+            const statusCode = log.status_code;
+            let statusClass = 'success';
+            if (statusCode >= 300 && statusCode < 400) statusClass = 'redirect';
+            else if (statusCode >= 400) statusClass = 'error';
+            
+            requestLogs.push({
+                timestamp: new Date(log.timestamp).toLocaleTimeString(),
+                status: statusCode || 'ERR',
+                statusClass: statusClass,
+                responseTime: log.duration_ms,
+                error: log.error,
+                userAgent: log.user_agent
+            });
+            
+            // Keep only last maxLogs
+            if (requestLogs.length > maxLogs) {
+                requestLogs = requestLogs.slice(-maxLogs);
+            }
+            
+            // Update the logs display if currently showing metrics
+            if (currentMetrics) {
+                updateRequestLogsDisplay();
+            }
+        }
+
+        function updateRequestLogsDisplay() {
+            const logsContainer = document.getElementById('request-logs');
+            if (!logsContainer) return;
+            
+            logsContainer.innerHTML = requestLogs.length === 0 ? 
+                '<div class="log-entry"><div class="log-details">waiting for requests...</div></div>' : 
+                requestLogs.slice(-50).reverse().map(log => `
+                    <div class="log-entry ${log.statusClass}">
+                        <div>
+                            <span class="log-status">${log.status}</span>
+                            <span class="log-details">${log.responseTime}ms</span>
+                            ${log.error ? `<span class="log-details"> - ${log.error}</span>` : ''}
+                        </div>
+                        <div class="log-timestamp">${log.timestamp}</div>
+                    </div>
+                `).join('');
+                
+            // Auto-scroll to bottom
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+
+        function renderTestConfig() {
+            if (!testConfig) return;
+            
+            const configHtml = `
+                <div class="panel">
+                    <div class="panel-title">test config</div>
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <span class="label">url</span>
+                            <span class="value">${testConfig.url}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="label">method</span>
+                            <span class="value">${testConfig.method.toLowerCase()}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="label">concurrent</span>
+                            <span class="value">${testConfig.concurrent_requests}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="label">duration</span>
+                            <span class="value">${testConfig.duration_secs}s</span>
+                        </div>
+                        ${testConfig.rps ? `
+                        <div class="config-item">
+                            <span class="label">rps limit</span>
+                            <span class="value">${testConfig.rps}</span>
+                        </div>
+                        ` : ''}
+                        <div class="config-item">
+                            <span class="label">user-agent</span>
+                            <span class="value">${testConfig.user_agent_mode.toLowerCase()}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('app').innerHTML = configHtml;
+        }
+
+        function renderHistogram() {
+            if (!currentMetrics || !currentMetrics.latency_histogram) return;
+            
+            const histogramContainer = document.getElementById('histogram-bars');
+            if (!histogramContainer) return;
+            
+            const histogram = currentMetrics.latency_histogram;
+            const maxCount = Math.max(...histogram.buckets);
+            
+            if (maxCount === 0) {
+                histogramContainer.innerHTML = '<div class="histogram-placeholder">no data yet...</div>';
+                return;
+            }
+            
+            const labels = ['0-10ms', '10-50ms', '50-100ms', '100-250ms', '250-500ms', '500-1000ms', '1000-2000ms', '2000-5000ms', '5000ms+'];
+            
+            const barsHtml = histogram.buckets.map((count, index) => {
+                const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                const label = labels[index] || `${index}`;
+                
+                return `
+                    <div class="histogram-bar">
+                        <div class="histogram-bar-fill" style="height: ${height}%"></div>
+                        <div class="histogram-bar-count">${count}</div>
+                        <div class="histogram-bar-label">${label}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            histogramContainer.innerHTML = barsHtml;
+        }
+
+        function renderMetrics() {
+            if (!currentMetrics) return;
+            
+            const successRate = currentMetrics.requests_sent > 0 
+                ? ((currentMetrics.requests_sent - currentMetrics.requests_failed) / currentMetrics.requests_sent * 100)
+                : 0;
+
+            const statusCodesHtml = Object.keys(currentMetrics.status_codes).length > 0 
+                ? `<div class="panel">
+                    <div class="panel-title">status codes</div>
+                    <div class="status-grid">
+                        ${Object.entries(currentMetrics.status_codes).map(([code, count]) => {
+                            const codeNum = parseInt(code);
+                            let colorClass = '';
+                            if (codeNum >= 200 && codeNum < 300) colorClass = 'success';
+                            else if (codeNum >= 300 && codeNum < 400) colorClass = 'redirect';
+                            else if (codeNum >= 400 && codeNum < 500) colorClass = 'client-error';
+                            else if (codeNum >= 500) colorClass = 'server-error';
+                            
+                            return `<div class="status-item ${colorClass}">
+                                <span class="status-code">${code}</span>
+                                <span class="status-count">${count}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>` : '';
+
+            const errorsHtml = Object.keys(currentMetrics.errors).length > 0 
+                ? `<div class="panel">
+                    <div class="panel-title">errors</div>
+                    <div class="error-list">
+                        ${Object.entries(currentMetrics.errors).slice(0, 5).map(([error, count]) => {
+                            const shortError = error.length > 50 ? error.substring(0, 47) + '...' : error;
+                            return `<div class="error-item">
+                                <span class="error-message" title="${error}">${shortError}</span>
+                                <span class="error-count">${count}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>` : '';
+
+            const metricsHtml = `
+                <div class="panel">
+                    <div class="panel-title">live metrics</div>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">${currentMetrics.requests_sent}</div>
+                            <div class="metric-label">requests</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${currentMetrics.current_rps.toFixed(1)}</div>
+                            <div class="metric-label">rps</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${Math.round(currentMetrics.avg_response_time)}</div>
+                            <div class="metric-label">avg ms</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${successRate.toFixed(1)}%</div>
+                            <div class="metric-label">success</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${currentMetrics.requests_failed}</div>
+                            <div class="metric-label">failed</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${formatBytes(currentMetrics.bytes_received)}</div>
+                            <div class="metric-label">bytes</div>
+                        </div>
+                    </div>
+                    
+                    <div class="range-info">
+                        <span>min: ${currentMetrics.min_response_time}ms</span>
+                        <span>max: ${currentMetrics.max_response_time}ms</span>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">${currentMetrics.p50_response_time}</div>
+                            <div class="metric-label">p50 ms</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${currentMetrics.p90_response_time}</div>
+                            <div class="metric-label">p90 ms</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${currentMetrics.p95_response_time}</div>
+                            <div class="metric-label">p95 ms</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${currentMetrics.p99_response_time}</div>
+                            <div class="metric-label">p99 ms</div>
+                        </div>
+                    </div>
+                </div>
+                ${currentMetrics.active_alerts && currentMetrics.active_alerts.length > 0 ? `
+                <div class="panel">
+                    <div class="panel-title">⚠️ active alerts</div>
+                    <div class="alert-list">
+                        ${currentMetrics.active_alerts.map(alert => `
+                            <div class="alert-item ${alert.severity.toLowerCase()}">
+                                <div class="alert-icon">
+                                    ${alert.severity === 'Critical' ? '🚨' : '⚠️'}
+                                </div>
+                                <div class="alert-content">
+                                    <div class="alert-message">${alert.message}</div>
+                                    <div class="alert-timestamp">${new Date(alert.timestamp).toLocaleTimeString()}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                <div class="panel">
+                    <div class="panel-title">latency histogram</div>
+                    <div class="histogram-container">
+                        <div class="histogram-bars" id="histogram-bars">
+                            <div class="histogram-placeholder">waiting for data...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">request logs</div>
+                    <div class="logs-container" id="request-logs">
+                        ${requestLogs.length === 0 ? '<div class="log-entry"><div class="log-details">waiting for requests...</div></div>' : 
+                          requestLogs.slice(-50).reverse().map(log => `
+                            <div class="log-entry ${log.statusClass}">
+                                <div>
+                                    <span class="log-status">${log.status}</span>
+                                    <span class="log-details">${log.responseTime}ms</span>
+                                    ${log.error ? `<span class="log-details"> - ${log.error}</span>` : ''}
+                                </div>
+                                <div class="log-timestamp">${log.timestamp}</div>
+                            </div>
+                          `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            let html = '';
+            if (testConfig) {
+                html += `
+                    <div class="panel">
+                        <div class="panel-title">test config</div>
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <span class="label">url</span>
+                                <span class="value">${testConfig.url}</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="label">method</span>
+                                <span class="value">${testConfig.method.toLowerCase()}</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="label">concurrent</span>
+                                <span class="value">${testConfig.concurrent_requests}</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="label">duration</span>
+                                <span class="value">${testConfig.duration_secs}s</span>
+                            </div>
+                            ${testConfig.rps ? `
+                            <div class="config-item">
+                                <span class="label">rps limit</span>
+                                <span class="value">${testConfig.rps}</span>
+                            </div>
+                            ` : ''}
+                            <div class="config-item">
+                                <span class="label">user-agent</span>
+                                <span class="value">${testConfig.user_agent_mode.toLowerCase()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += metricsHtml + statusCodesHtml + errorsHtml;
+            document.getElementById('app').innerHTML = html;
+            
+            // Render histogram after DOM is updated
+            setTimeout(renderHistogram, 10);
+            
+            // Auto-scroll logs to bottom
+            setTimeout(() => {
+                const logsContainer = document.getElementById('request-logs');
+                if (logsContainer) {
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
+            }, 10);
+        }
+
+        function renderSummary() {
+            if (!testSummary) return;
+            
+            const summaryHtml = `
+                <div class="panel">
+                    <div class="panel-title">test completed</div>
+                    <div class="summary-grid">
+                        <div class="summary-section">
+                            <h3>overall</h3>
+                            <div class="summary-stats">
+                                <div class="stat">
+                                    <span class="label">total requests</span>
+                                    <span class="value">${testSummary.total_requests}</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">successful</span>
+                                    <span class="value success">${testSummary.successful_requests}</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">failed</span>
+                                    <span class="value error">${testSummary.failed_requests}</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">duration</span>
+                                    <span class="value">${testSummary.test_duration_secs.toFixed(2)}s</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">avg rps</span>
+                                    <span class="value">${testSummary.avg_rps.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-section">
+                            <h3>response times</h3>
+                            <div class="summary-stats">
+                                <div class="stat">
+                                    <span class="label">average</span>
+                                    <span class="value">${testSummary.avg_response_time.toFixed(2)}ms</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">min</span>
+                                    <span class="value">${testSummary.min_response_time}ms</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">max</span>
+                                    <span class="value">${testSummary.max_response_time}ms</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">p50</span>
+                                    <span class="value">${testSummary.p50_response_time}ms</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">p95</span>
+                                    <span class="value">${testSummary.p95_response_time}ms</span>
+                                </div>
+                                <div class="stat">
+                                    <span class="label">p99</span>
+                                    <span class="value">${testSummary.p99_response_time}ms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            let html = '';
+            if (testConfig) {
+                html += `
+                    <div class="panel">
+                        <div class="panel-title">test config</div>
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <span class="label">url</span>
+                                <span class="value">${testConfig.url}</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="label">method</span>
+                                <span class="value">${testConfig.method.toLowerCase()}</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="label">concurrent</span>
+                                <span class="value">${testConfig.concurrent_requests}</span>
+                            </div>
+                            <div class="config-item">
+                                <span class="label">duration</span>
+                                <span class="value">${testConfig.duration_secs}s</span>
+                            </div>
+                            ${testConfig.rps ? `
+                            <div class="config-item">
+                                <span class="label">rps limit</span>
+                                <span class="value">${testConfig.rps}</span>
+                            </div>
+                            ` : ''}
+                            <div class="config-item">
+                                <span class="label">user-agent</span>
+                                <span class="value">${testConfig.user_agent_mode.toLowerCase()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (currentMetrics) {
+                const successRate = currentMetrics.requests_sent > 0 
+                    ? ((currentMetrics.requests_sent - currentMetrics.requests_failed) / currentMetrics.requests_sent * 100)
+                    : 0;
+
+                html += `
+                    <div class="panel">
+                        <div class="panel-title">final metrics</div>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-value">${currentMetrics.requests_sent}</div>
+                                <div class="metric-label">requests</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${currentMetrics.current_rps.toFixed(1)}</div>
+                                <div class="metric-label">final rps</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${Math.round(currentMetrics.avg_response_time)}</div>
+                                <div class="metric-label">avg ms</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${successRate.toFixed(1)}%</div>
+                                <div class="metric-label">success</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${currentMetrics.requests_failed}</div>
+                                <div class="metric-label">failed</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${formatBytes(currentMetrics.bytes_received)}</div>
+                                <div class="metric-label">bytes</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += summaryHtml;
+            document.getElementById('app').innerHTML = html;
+        }
+
+        connectWebSocket();
+    </script>
+</body>
+</html>

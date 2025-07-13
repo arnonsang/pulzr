@@ -1,0 +1,59 @@
+{
+  "name": "Multi-API Endpoint Test",
+  "description": "Testing multiple API endpoints simultaneously",
+  "version": "1.0",
+  "defaults": {
+    "method": "GET",
+    "headers": {
+      "User-Agent": "pulzr-endpoints/1.0",
+      "Accept": "application/json"
+    },
+    "timeout": 15,
+    "weight": 1.0
+  },
+  "endpoints": [
+    {
+      "name": "Get Users",
+      "url": "https://httpbin.org/get",
+      "method": "GET",
+      "weight": 3.0,
+      "expected_status": [200]
+    },
+    {
+      "name": "Create User",
+      "url": "https://httpbin.org/post",
+      "method": "POST",
+      "payload": "{\"name\": \"test\", \"email\": \"test@example.com\"}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "weight": 1.0,
+      "expected_status": [200, 201]
+    },
+    {
+      "name": "Update User",
+      "url": "https://httpbin.org/put",
+      "method": "PUT",
+      "payload": "{\"id\": 1, \"name\": \"updated\"}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "weight": 1.5,
+      "expected_status": [200]
+    },
+    {
+      "name": "Health Check",
+      "url": "https://httpbin.org/status/200",
+      "method": "GET",
+      "weight": 0.5,
+      "expected_status": [200]
+    },
+    {
+      "name": "Delete User",
+      "url": "https://httpbin.org/delete",
+      "method": "DELETE",
+      "weight": 0.8,
+      "expected_status": [200, 204]
+    }
+  ]
+}

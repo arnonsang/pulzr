@@ -1,0 +1,37 @@
+[package]
+name = "pulzr"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "http2"] }
+ratatui = "0.29"
+crossterm = "0.29"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.10", features = ["v4"] }
+futures = "0.3"
+governor = "0.10"
+nonzero_ext = "0.3"
+tokio-tungstenite = "0.27"
+csv = "1.3"
+rand = "0.9"
+rand_distr = "0.5"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+axum = "0.8"
+jsonwebtoken = "9.3"
+base64 = "0.22"
+prometheus = "0.14"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockito = "1.4"
+tempfile = "3.8"
+assert_matches = "1.5"
+proptest = "1.4"

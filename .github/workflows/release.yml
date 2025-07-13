@@ -1,0 +1,91 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Upload
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: pulzr
+            asset: pulzr-linux-amd64
+            use_zigbuild: false
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: pulzr.exe
+            asset: pulzr-windows-amd64.exe
+            use_zigbuild: false
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: pulzr
+            asset: pulzr-macos-amd64
+            use_zigbuild: false
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: pulzr
+            asset: pulzr-macos-arm64
+            use_zigbuild: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1.13.0
+        with:
+          toolchain: stable
+
+      - name: Install target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Setup Zig
+        if: matrix.use_zigbuild
+        uses: mlugg/setup-zig@v2
+        with:
+          version: latest
+
+      - name: Install cargo-zigbuild
+        if: matrix.use_zigbuild
+        run: cargo install --locked cargo-zigbuild
+
+      - name: Install OpenSSL for ARM64 Linux cross-compilation
+        if: matrix.use_zigbuild && matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update || true
+          sudo apt-get install -y gcc-aarch64-linux-gnu pkg-config libssl-dev libssl-dev:arm64
+
+      - name: Build with zigbuild
+        if: matrix.use_zigbuild
+        env:
+          PKG_CONFIG_ALLOW_CROSS: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '1' || '' }}
+          PKG_CONFIG_PATH: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '/usr/lib/aarch64-linux-gnu/pkgconfig' || '' }}
+          OPENSSL_LIB_DIR: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '/usr/lib/aarch64-linux-gnu' || '' }}
+          OPENSSL_INCLUDE_DIR: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && '/usr/include' || '' }}
+          CC_aarch64_unknown_linux_gnu: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-gcc' || '' }}
+          AR_aarch64_unknown_linux_gnu: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-ar' || '' }}
+        run: cargo zigbuild --release --target ${{ matrix.target }}
+
+      - name: Build with cargo
+        if: ${{ !matrix.use_zigbuild }}
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload to GitHub Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/${{ matrix.target }}/release/${{ matrix.artifact }}
+          asset_name: ${{ matrix.asset }}
+          tag: ${{ github.ref }}

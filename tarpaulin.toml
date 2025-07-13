@@ -1,0 +1,35 @@
+[tool.tarpaulin]
+# Coverage configuration for local testing
+exclude = [
+    "src/main.rs",
+    "target/*",
+    "tests/*",
+    "benches/*"
+]
+
+# Only include src/ directory for coverage
+include = ["src/*"]
+
+# Output formats
+out = ["Html", "Lcov"]
+
+# Don't fail on missing debug info
+fail-under = 80
+
+# Engine to use
+engine = "llvm"
+
+# Timeout in seconds
+timeout = 120
+
+# Follow symbolic links
+follow-exec = true
+
+# Include tests in coverage
+include-tests = false
+
+# Run in post-test mode
+post-test = true
+
+# Forward signals to the child process
+forward-signals = true

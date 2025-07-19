@@ -21,6 +21,7 @@ pub struct LoadTester {
     stats_collector: Arc<StatsCollector>,
     concurrent_requests: usize,
     test_duration: Option<Duration>,
+    total_requests: Option<u64>,
     scenario: Option<Arc<Scenario>>,
     endpoints: Option<Arc<MultiEndpointConfig>>,
     ramp_up: Option<RampUpConfig>,
@@ -41,11 +42,17 @@ impl LoadTester {
             stats_collector,
             concurrent_requests,
             test_duration,
+            total_requests: None,
             scenario: None,
             endpoints: None,
             ramp_up: None,
             debug_config: DebugConfig::disabled(),
         }
+    }
+
+    pub fn with_total_requests(mut self, total_requests: Option<u64>) -> Self {
+        self.total_requests = total_requests;
+        self
     }
 
     pub fn with_scenario(mut self, scenario: Arc<Scenario>) -> Self {
@@ -83,6 +90,9 @@ impl LoadTester {
     ) -> Result<()> {
         let mut handles = Vec::new();
 
+        // Shared request counter for total request limit
+        let request_counter = Arc::new(AtomicUsize::new(0));
+
         // Prepare request data (scenarios, endpoints, or single URL)
         let (scenario_data, endpoint_data) = self.prepare_request_data();
         let random_indices = self.generate_random_indices(&scenario_data, &endpoint_data);
@@ -92,6 +102,8 @@ impl LoadTester {
             let rate_limiter = Arc::clone(&self.rate_limiter);
             let stats_collector = Arc::clone(&self.stats_collector);
             let test_duration = self.test_duration;
+            let total_requests = self.total_requests;
+            let request_counter = Arc::clone(&request_counter);
             let scenario = self.scenario.clone();
             let endpoints = self.endpoints.clone();
             let scenario_data = scenario_data.clone();
@@ -113,6 +125,14 @@ impl LoadTester {
                             // Check if we have a duration and if it's exceeded
                             if let Some(end) = end_time {
                                 if tokio::time::Instant::now() >= end {
+                                    return;
+                                }
+                            }
+
+                            // Check if we have reached the total request limit
+                            if let Some(max_requests) = total_requests {
+                                let current_count = request_counter.load(Ordering::SeqCst);
+                                if current_count >= max_requests as usize {
                                     return;
                                 }
                             }
@@ -158,6 +178,7 @@ impl LoadTester {
                                         eprintln!("Request timeout");
                                     }
                                 }
+                                request_counter.fetch_add(1, Ordering::SeqCst);
                             }
                         } => {
                             if let Some(end) = end_time {
@@ -173,8 +194,25 @@ impl LoadTester {
             handles.push(handle);
         }
 
-        // Wait for either duration to complete or quit signal
-        if let Some(duration) = self.test_duration {
+        // Wait for either duration, request count, or quit signal
+        if let Some(total_requests) = self.total_requests {
+            // Request count mode: wait until all requests are done
+            loop {
+                tokio::select! {
+                    _ = quit_receiver.recv() => {
+                        println!("Received quit signal, stopping test...");
+                        break;
+                    }
+                    _ = tokio::time::sleep(Duration::from_millis(100)) => {
+                        let current_count = request_counter.load(Ordering::SeqCst);
+                        if current_count >= total_requests as usize {
+                            println!("Completed {} requests", total_requests);
+                            break;
+                        }
+                    }
+                }
+            }
+        } else if let Some(duration) = self.test_duration {
             tokio::select! {
                 _ = sleep(duration) => {},
                 _ = quit_receiver.recv() => {
@@ -201,6 +239,7 @@ impl LoadTester {
     ) -> Result<()> {
         let mut handles = Vec::new();
         let active_tasks = Arc::new(AtomicUsize::new(0));
+        let request_counter = Arc::new(AtomicUsize::new(0));
         let start_time = Instant::now();
 
         // Prepare request data (scenarios, endpoints, or single URL)
@@ -218,7 +257,7 @@ impl LoadTester {
                 scenario_data.clone(),
                 endpoint_data.clone(),
                 random_indices.clone(),
-                Arc::clone(&active_tasks),
+                (Arc::clone(&active_tasks), Arc::clone(&request_counter)),
             );
             handles.push(handle);
             active_tasks.fetch_add(1, Ordering::SeqCst);
@@ -235,6 +274,15 @@ impl LoadTester {
                     break;
                 }
                 _ = check_interval.tick() => {
+                    // Check if we have reached the total request limit
+                    if let Some(max_requests) = self.total_requests {
+                        let current_count = request_counter.load(Ordering::SeqCst);
+                        if current_count >= max_requests as usize {
+                            println!("Completed {} requests", max_requests);
+                            break;
+                        }
+                    }
+
                     // Check if test duration is exceeded
                     if let Some(duration) = self.test_duration {
                         if start_time.elapsed() >= duration {
@@ -255,7 +303,7 @@ impl LoadTester {
                                     scenario_data.clone(),
                                     endpoint_data.clone(),
                                     random_indices.clone(),
-                                    Arc::clone(&active_tasks),
+                                    (Arc::clone(&active_tasks), Arc::clone(&request_counter)),
                                 );
                                 handles.push(handle);
                                 active_tasks.fetch_add(1, Ordering::SeqCst);
@@ -368,16 +416,19 @@ impl LoadTester {
         scenario_data: Option<(Vec<ScenarioStep>, Option<WeightedIndex<f64>>)>,
         endpoint_data: Option<(Vec<Endpoint>, Option<WeightedIndex<f64>>)>,
         random_indices: Option<Arc<Vec<usize>>>,
-        active_tasks: Arc<AtomicUsize>,
+        counters: (Arc<AtomicUsize>, Arc<AtomicUsize>), // (active_tasks, request_counter)
     ) -> tokio::task::JoinHandle<()> {
         let client = Arc::clone(&self.client);
         let rate_limiter = Arc::clone(&self.rate_limiter);
         let stats_collector = Arc::clone(&self.stats_collector);
         let test_duration = self.test_duration;
+        let total_requests = self.total_requests;
         let scenario = self.scenario.clone();
         let endpoints = self.endpoints.clone();
         let debug_config = self.debug_config.clone();
         let mut quit_rx = quit_receiver.resubscribe();
+
+        let (active_tasks, request_counter) = counters;
 
         tokio::spawn(async move {
             let end_time = test_duration.map(|d| start_time + d);
@@ -392,6 +443,14 @@ impl LoadTester {
                         // Check if we have a duration and if it's exceeded
                         if let Some(end) = end_time {
                             if Instant::now() >= end {
+                                return;
+                            }
+                        }
+
+                        // Check if we have reached the total request limit
+                        if let Some(max_requests) = total_requests {
+                            let current_count = request_counter.load(Ordering::SeqCst);
+                            if current_count >= max_requests as usize {
                                 return;
                             }
                         }
@@ -412,6 +471,7 @@ impl LoadTester {
                                     }
 
                                     request_count += 1;
+                                    request_counter.fetch_add(1, Ordering::SeqCst);
                                 }
                             }
                         } else if let Some((endpoints_list, _)) = &endpoint_data {
@@ -426,6 +486,7 @@ impl LoadTester {
                                     }
 
                                     request_count += 1;
+                                    request_counter.fetch_add(1, Ordering::SeqCst);
                                 }
                             }
                         } else {
@@ -437,6 +498,7 @@ impl LoadTester {
                                     eprintln!("Request timeout");
                                 }
                             }
+                            request_counter.fetch_add(1, Ordering::SeqCst);
                         }
                     } => {
                         if let Some(end) = end_time {

@@ -6,11 +6,15 @@ use std::path::PathBuf;
 #[command(about = "A high-performance load testing tool with TUI and WebSocket support")]
 #[command(version = "0.1.0")]
 pub struct Cli {
+    #[arg(help = "Target URL to test (optional when using --scenario or --endpoints)")]
+    pub url: Option<String>,
+
     #[arg(
         long,
-        help = "Target URL to test (optional when using --scenario or --endpoints)"
+        alias = "target",
+        help = "Target URL to test (alternative to positional)"
     )]
-    pub url: Option<String>,
+    pub target_url: Option<String>,
 
     #[arg(long, help = "Multiple endpoints configuration file (JSON/YAML)")]
     pub endpoints: Option<PathBuf>,
@@ -18,12 +22,13 @@ pub struct Cli {
     #[arg(
         long,
         short = 'c',
+        alias = "connections",
         default_value = "10",
         help = "Number of concurrent requests"
     )]
     pub concurrent: usize,
 
-    #[arg(long, short = 'r', help = "Requests per second limit")]
+    #[arg(long, short = 'r', alias = "rate", help = "Requests per second limit")]
     pub rps: Option<u64>,
 
     #[arg(
@@ -38,6 +43,22 @@ pub struct Cli {
 
     #[arg(long, short = 'p', help = "Request payload (JSON string or file path)")]
     pub payload: Option<String>,
+
+    #[arg(
+        long,
+        short = 'b',
+        alias = "body",
+        help = "Request body (alias for payload)"
+    )]
+    pub body: Option<String>,
+
+    #[arg(
+        long,
+        short = 'f',
+        alias = "body-file",
+        help = "File to use as request body"
+    )]
+    pub body_file: Option<PathBuf>,
 
     #[arg(long, short = 'H', help = "Custom headers (format: 'Key: Value')")]
     pub headers: Vec<String>,
@@ -60,14 +81,68 @@ pub struct Cli {
     #[arg(long, default_value = "9621", help = "WebSocket server port")]
     pub websocket_port: u16,
 
-    #[arg(long, help = "Disable TUI display")]
-    pub no_tui: bool,
+    #[arg(
+        long,
+        alias = "no-tui",
+        help = "Run in headless mode (disable TUI display)"
+    )]
+    pub headless: bool,
 
     #[arg(long, short = 'v', help = "Verbose output")]
     pub verbose: bool,
 
-    #[arg(long, help = "Request timeout in seconds")]
+    #[arg(
+        long,
+        short = 'q',
+        help = "Quiet mode - minimal output (only final summary)"
+    )]
+    pub quiet: bool,
+
+    #[arg(
+        long,
+        default_value = "detailed",
+        help = "Output format (detailed, compact, minimal)"
+    )]
+    pub output_format: OutputFormat,
+
+    #[arg(long, short = 't', help = "Request timeout in seconds")]
     pub timeout: Option<u64>,
+
+    #[arg(
+        long,
+        short = 'l',
+        help = "Print latency statistics (enables latency distribution)"
+    )]
+    pub latencies: bool,
+
+    #[arg(long, short = 'n', help = "Total number of requests to make")]
+    pub requests: Option<u64>,
+
+    #[arg(long, short = 'k', help = "Skip TLS certificate verification")]
+    pub insecure: bool,
+
+    #[arg(long, help = "Path to client TLS certificate")]
+    pub cert: Option<PathBuf>,
+
+    #[arg(long, help = "Path to client TLS certificate private key")]
+    pub key: Option<PathBuf>,
+
+    #[arg(
+        long,
+        short = 'P',
+        help = "Enhanced print control (intro,progress,result)"
+    )]
+    pub print: Option<String>,
+
+    #[arg(
+        long,
+        alias = "no-print",
+        help = "Don't output anything (compatibility mode)"
+    )]
+    pub no_print: bool,
+
+    #[arg(long, short = 'O', help = "Enhanced output format (plain-text, json)")]
+    pub format: Option<OutputFormatExtended>,
 
     #[arg(long, help = "Enable WebUI server")]
     pub webui: bool,
@@ -198,14 +273,14 @@ pub struct Cli {
     pub cleanup_interval: u64,
 
     // HTTP/2 options
+    #[arg(long, alias = "http1", help = "Disable HTTP/2 (force HTTP/1.1)")]
+    pub http1_only: bool,
+
     #[arg(long, help = "Enable HTTP/2 protocol support")]
     pub http2: bool,
 
     #[arg(long, help = "Force HTTP/2 prior knowledge (skip HTTP/1.1 Upgrade)")]
     pub http2_prior_knowledge: bool,
-
-    #[arg(long, help = "Disable HTTP/2 (force HTTP/1.1)")]
-    pub http1_only: bool,
 
     #[arg(long, help = "Set HTTP/2 initial connection window size")]
     pub http2_initial_connection_window_size: Option<u32>,
@@ -215,6 +290,9 @@ pub struct Cli {
 
     #[arg(long, help = "Set HTTP/2 max frame size")]
     pub http2_max_frame_size: Option<u32>,
+
+    #[arg(long, help = "Show usage examples and exit")]
+    pub examples: bool,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -242,6 +320,21 @@ pub enum ApiKeyLocation {
     Bearer,
 }
 
+#[derive(Debug, Clone, ValueEnum)]
+pub enum OutputFormat {
+    Detailed,
+    Compact,
+    Minimal,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum OutputFormatExtended {
+    #[value(name = "plain-text", alias = "pt")]
+    PlainText,
+    #[value(name = "json", alias = "j")]
+    Json,
+}
+
 impl HttpMethod {
     pub fn to_reqwest_method(&self) -> reqwest::Method {
         match self {
@@ -263,5 +356,37 @@ impl ApiKeyLocation {
             ApiKeyLocation::Query => crate::auth::ApiKeyLocation::Query,
             ApiKeyLocation::Bearer => crate::auth::ApiKeyLocation::Bearer,
         }
+    }
+}
+
+impl Cli {
+    /// Get the target URL from either positional argument or --target-url flag
+    pub fn get_url(&self) -> Option<&String> {
+        self.url.as_ref().or(self.target_url.as_ref())
+    }
+
+    /// Get the request body from either --payload, --body, or --body-file
+    pub fn get_body(&self) -> Option<String> {
+        // Priority: --body > --payload > --body-file
+        if let Some(body) = &self.body {
+            Some(body.clone())
+        } else if let Some(payload) = &self.payload {
+            Some(payload.clone())
+        } else if let Some(body_file) = &self.body_file {
+            // Read from file
+            std::fs::read_to_string(body_file).ok()
+        } else {
+            None
+        }
+    }
+
+    /// Check if request count mode is enabled (compatibility mode)
+    pub fn is_request_count_mode(&self) -> bool {
+        self.requests.is_some()
+    }
+
+    /// Get effective quiet mode (from either --quiet or --no-print)
+    pub fn is_quiet(&self) -> bool {
+        self.quiet || self.no_print
     }
 }

@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 use pulzr::{
     auth::{ApiKeyConfig, ApiKeyManager, AuthMethod, JwtConfig, JwtManager},
-    cli::Cli,
+    cli::{Cli, OutputFormat, OutputFormatExtended},
     client::HttpClient,
     debug::DebugConfig,
     endpoints::MultiEndpointConfig,
@@ -81,6 +81,36 @@ fn setup_authentication(cli: &Cli) -> Result<AuthMethod> {
     Ok(AuthMethod::None)
 }
 
+fn should_print_intro(cli: &Cli) -> bool {
+    if cli.is_quiet() {
+        return false;
+    }
+
+    if let Some(print) = &cli.print {
+        let parts: Vec<&str> = print.split(',').map(|s| s.trim()).collect();
+        parts
+            .iter()
+            .any(|&p| matches!(p, "intro" | "i" | "i,p,r" | "intro,progress,result"))
+    } else {
+        true // Default behavior
+    }
+}
+
+fn should_print_result(cli: &Cli) -> bool {
+    if cli.is_quiet() {
+        return false;
+    }
+
+    if let Some(print) = &cli.print {
+        let parts: Vec<&str> = print.split(',').map(|s| s.trim()).collect();
+        parts
+            .iter()
+            .any(|&p| matches!(p, "result" | "r" | "i,p,r" | "intro,progress,result"))
+    } else {
+        true // Default behavior
+    }
+}
+
 fn create_http2_config(cli: &Cli) -> Result<Http2Config> {
     // Check for conflicting options
     if cli.http2 && cli.http1_only {
@@ -129,12 +159,110 @@ fn create_http2_config(cli: &Cli) -> Result<Http2Config> {
     Ok(config)
 }
 
+fn print_examples() {
+    println!("📚 Pulzr Load Testing Examples\n");
+
+    println!("🚀 Basic Usage:");
+    println!("  # Simple load test");
+    println!("  pulzr https://httpbin.org/get -c 10 -d 30");
+    println!("  ");
+    println!("  # Request count mode");
+    println!("  pulzr https://httpbin.org/get -c 10 -n 500");
+    println!();
+
+    println!("🌐 WebUI Testing:");
+    println!("  # WebUI with auto-open browser");
+    println!("  pulzr https://httpbin.org/get --webui --open-browser -c 20 -d 60");
+    println!("  ");
+    println!("  # WebUI with request count");
+    println!("  pulzr https://httpbin.org/get --webui -c 15 -n 1000");
+    println!();
+
+    println!("📊 Output Formats:");
+    println!("  # JSON output for automation");
+    println!("  pulzr https://api.example.com --format json -c 10 -n 100");
+    println!("  ");
+    println!("  # Compact output with latencies");
+    println!("  pulzr https://api.example.com --format plain-text --latencies -c 25 -d 30");
+    println!("  ");
+    println!("  # Silent mode");
+    println!("  pulzr https://api.example.com --no-print -c 10 -n 100");
+    println!();
+
+    println!("⚡ Performance Testing:");
+    println!("  # High-throughput test");
+    println!("  pulzr https://api.example.com -c 100 -r 500 -d 300 --headless");
+    println!("  ");
+    println!("  # Request count with rate limiting");
+    println!("  pulzr https://api.example.com -c 50 -n 10000 -r 200 --output perf_test");
+    println!();
+
+    println!("🔧 HTTP Methods & Headers:");
+    println!("  # POST with JSON payload");
+    println!("  pulzr https://httpbin.org/post --method POST \\");
+    println!("        --body '{{\"name\": \"test\", \"value\": 123}}' \\");
+    println!("        --headers 'Content-Type: application/json' -c 5 -n 10");
+    println!("  ");
+    println!("  # Custom headers and User-Agent");
+    println!("  pulzr https://api.example.com \\");
+    println!("        --headers 'Authorization: Bearer token123' \\");
+    println!("        --user-agent 'MyApp/1.0' -c 10 -d 30");
+    println!();
+
+    println!("🎯 Advanced Features:");
+    println!("  # Random User-Agent rotation");
+    println!("  pulzr https://httpbin.org/user-agent --random-ua -c 5 -d 60");
+    println!("  ");
+    println!("  # CSV export with detailed logging");
+    println!("  pulzr https://api.example.com -c 20 -d 120 --output test_results");
+    println!("  ");
+    println!("  # HTTP/2 with multiplexing");
+    println!("  pulzr https://http2.github.io --http2 -c 50 -d 30");
+    println!();
+
+    println!("🔗 Integration & CI/CD:");
+    println!("  # CI/CD automation");
+    println!("  pulzr $API_ENDPOINT --headless -c 5 -n 100 --timeout 10 --output ci_results");
+    println!("  ");
+    println!("  # Health check monitoring");
+    println!("  pulzr https://api.example.com --websocket --headless -c 3 -d 60");
+    println!();
+
+    println!("📋 Alternative Syntax");
+    println!("  # Positional URL with enhanced flags");
+    println!("  pulzr -c 25 -n 1000 --latencies --format json https://example.com");
+    println!("  ");
+    println!("  # Compatible flag names");
+    println!("  pulzr https://example.com --connections 50 --rate 100 --timeout 15");
+    println!();
+
+    println!("💡 Pro Tips:");
+    println!("  • Use --webui for visual monitoring and real-time request logs");
+    println!("  • Use -n for exact request counts, -d for time-based testing");
+    println!("  • Use --format json for automation and CI/CD pipelines");
+    println!("  • Use --random-ua for more realistic traffic simulation");
+    println!("  • Use --output to export detailed CSV reports");
+    println!();
+
+    println!("📖 For more examples and documentation:");
+    println!("  https://github.com/yourusername/pulzr");
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    // Handle examples flag
+    if cli.examples {
+        print_examples();
+        std::process::exit(0);
+    }
+
     // Handle memory optimization demo command
-    if cli.memory_optimize && cli.url.is_none() && cli.scenario.is_none() && cli.endpoints.is_none()
+    if cli.memory_optimize
+        && cli.get_url().is_none()
+        && cli.scenario.is_none()
+        && cli.endpoints.is_none()
     {
         println!("🔧 Memory Optimization Demo Mode");
         println!("This would demonstrate memory optimization features.");
@@ -253,7 +381,7 @@ async fn main() -> Result<()> {
     };
 
     // Validate that either URL, scenario, or endpoints is provided
-    if cli.url.is_none() && scenario.is_none() && endpoints.is_none() {
+    if cli.get_url().is_none() && scenario.is_none() && endpoints.is_none() {
         eprintln!("Error: Either --url, --scenario, or --endpoints must be provided");
         std::process::exit(1);
     }
@@ -285,12 +413,12 @@ async fn main() -> Result<()> {
     let http2_config = Arc::new(create_http2_config(&cli)?);
 
     let client = Arc::new(HttpClient::new(
-        cli.url
-            .clone()
+        cli.get_url()
+            .cloned()
             .unwrap_or_else(|| "http://placeholder.com".to_string()),
         cli.method.to_reqwest_method(),
         cli.headers.clone(),
-        cli.payload.clone(),
+        cli.get_body(),
         Arc::clone(&user_agent_manager),
         Arc::clone(&stats_collector),
         cli.timeout.map(Duration::from_secs),
@@ -306,7 +434,8 @@ async fn main() -> Result<()> {
         Arc::clone(&stats_collector),
         cli.concurrent,
         cli.duration.map(Duration::from_secs),
-    );
+    )
+    .with_total_requests(cli.requests);
 
     // Add scenario if provided
     if let Some(ref scenario) = scenario {
@@ -411,7 +540,7 @@ async fn main() -> Result<()> {
         None
     };
 
-    let tui_handle = if !cli.no_tui && !cli.webui {
+    let tui_handle = if !cli.headless && !cli.webui {
         let mut tui_app =
             TuiApp::new(Arc::clone(&stats_collector)).with_quit_sender(quit_sender.clone());
         Some(tokio::spawn(async move {
@@ -430,32 +559,37 @@ async fn main() -> Result<()> {
         }
     });
 
-    println!("Starting load test...");
-    if let Some(url) = &cli.url {
-        println!("URL: {}", url);
-    } else if let Some(scenario) = &scenario {
-        println!(
-            "Scenario: {} ({} steps)",
-            scenario.name,
-            scenario.steps.len()
-        );
-    } else if let Some(endpoints) = &endpoints {
-        println!(
-            "Endpoints: {} ({} endpoints)",
-            endpoints.name,
-            endpoints.endpoints.len()
-        );
-        for endpoint in &endpoints.endpoints {
+    if should_print_intro(&cli) {
+        println!("Starting load test...");
+        if let Some(url) = cli.get_url() {
+            println!("URL: {}", url);
+        } else if let Some(scenario) = &scenario {
             println!(
-                "  - {}: {} {}",
-                endpoint.name,
-                endpoint.get_method(&endpoints.defaults),
-                endpoint.url
+                "Scenario: {} ({} steps)",
+                scenario.name,
+                scenario.steps.len()
             );
+        } else if let Some(endpoints) = &endpoints {
+            println!(
+                "Endpoints: {} ({} endpoints)",
+                endpoints.name,
+                endpoints.endpoints.len()
+            );
+            for endpoint in &endpoints.endpoints {
+                println!(
+                    "  - {}: {} {}",
+                    endpoint.name,
+                    endpoint.get_method(&endpoints.defaults),
+                    endpoint.url
+                );
+            }
         }
     }
-    println!("Method: {:?}", cli.method);
-    if let Some(ramp_duration) = cli.ramp_up {
+    if should_print_intro(&cli) {
+        println!("Method: {:?}", cli.method);
+    }
+    if should_print_intro(&cli) && cli.ramp_up.is_some() {
+        let ramp_duration = cli.ramp_up.unwrap();
         println!(
             "Ramp-up: {} pattern over {}s to {} concurrent",
             format!("{:?}", cli.ramp_pattern).to_lowercase(),
@@ -468,7 +602,9 @@ async fn main() -> Result<()> {
     if let Some(rps) = cli.rps {
         println!("RPS limit: {}", rps);
     }
-    if let Some(duration) = cli.duration {
+    if let Some(total_requests) = cli.requests {
+        println!("Total requests: {}", total_requests);
+    } else if let Some(duration) = cli.duration {
         println!("Duration: {}s", duration);
     } else {
         println!("Duration: Until stopped (Ctrl+C or 'q')");
@@ -531,7 +667,7 @@ async fn main() -> Result<()> {
         );
     }
 
-    if !cli.no_tui && !cli.webui {
+    if !cli.headless && !cli.webui {
         println!("TUI: Press 'q' or Ctrl+C to quit early");
     } else {
         println!("Press Ctrl+C to quit early");
@@ -540,7 +676,9 @@ async fn main() -> Result<()> {
     println!("\nTest running...\n");
 
     // Give user time to see the URLs before TUI starts
-    if !cli.no_tui && !cli.webui && (actual_websocket_port.is_some() || actual_webui_port.is_some())
+    if !cli.headless
+        && !cli.webui
+        && (actual_websocket_port.is_some() || actual_webui_port.is_some())
     {
         println!("Starting TUI in 3 seconds...");
         tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
@@ -569,27 +707,81 @@ async fn main() -> Result<()> {
     }
 
     let exporter = CsvExporter::new(Arc::clone(&stats_collector));
-    exporter.print_summary(&final_summary);
 
-    if let Some(output_path) = cli.output {
-        println!("\nExporting results to CSV...");
+    // Print summary based on output format and enhanced output controls
+    if should_print_result(&cli) {
+        let target_url = cli
+            .get_url()
+            .map(|s| s.as_str())
+            .unwrap_or("multiple endpoints");
+        let duration_val = cli.duration.map(|d| d as f64);
+
+        // Handle enhanced format flag first
+        if let Some(format) = &cli.format {
+            match format {
+                OutputFormatExtended::PlainText => {
+                    if cli.latencies {
+                        exporter.print_compact_summary(
+                            &final_summary,
+                            target_url,
+                            cli.concurrent,
+                            duration_val,
+                        );
+                    } else {
+                        exporter.print_summary(&final_summary);
+                    }
+                }
+                OutputFormatExtended::Json => {
+                    exporter.print_json_summary(&final_summary);
+                }
+            }
+        } else {
+            // Use Pulzr's native output format
+            match cli.output_format {
+                OutputFormat::Detailed => {
+                    exporter.print_summary(&final_summary);
+                }
+                OutputFormat::Compact => {
+                    exporter.print_compact_summary(
+                        &final_summary,
+                        target_url,
+                        cli.concurrent,
+                        duration_val,
+                    );
+                }
+                OutputFormat::Minimal => {
+                    exporter.print_minimal_summary(&final_summary);
+                }
+            }
+        }
+    } else if !cli.is_quiet() {
+        // Show minimal summary even when result printing is disabled
+        exporter.print_minimal_summary(&final_summary);
+    }
+
+    if let Some(ref output_path) = cli.output {
+        if !cli.is_quiet() {
+            println!("\nExporting results to CSV...");
+        }
 
         let detailed_path = output_path.with_extension("detailed.csv");
         let summary_path = output_path.with_extension("summary.csv");
 
         if let Err(e) = exporter.export_detailed_results(&detailed_path).await {
             eprintln!("Failed to export detailed results: {}", e);
-        } else {
+        } else if !cli.is_quiet() {
             println!("Detailed results: {}", detailed_path.display());
         }
 
         if let Err(e) = exporter.export_summary(&summary_path).await {
             eprintln!("Failed to export summary: {}", e);
-        } else {
+        } else if !cli.is_quiet() {
             println!("Summary: {}", summary_path.display());
         }
     }
 
-    println!("\nLoad test completed!");
+    if should_print_result(&cli) {
+        println!("\nLoad test completed!");
+    }
     Ok(())
 }

@@ -72,6 +72,9 @@ pulzr --url https://httpbin.org/get -c 10
 
 # Run for specific duration
 pulzr --url https://httpbin.org/get -c 10 -d 30
+
+# Run for specific number of requests
+pulzr --url https://httpbin.org/get -c 10 -n 500
 ```
 
 ### WebUI Mode (Recommended)
@@ -81,6 +84,9 @@ pulzr --url https://httpbin.org/get --webui --open-browser -c 10
 
 # WebUI with specific duration
 pulzr --url https://httpbin.org/get --webui --open-browser -c 10 -d 30
+
+# Request count mode - run exactly 1000 requests
+pulzr --url https://httpbin.org/get --webui --open-browser -c 10 -n 1000
 ```
 
 ## Table of Contents
@@ -107,6 +113,17 @@ pulzr --url https://httpbin.org/get --webui --open-browser -c 10 -d 30
     - [🔗 Multiple Endpoints Testing](#-multiple-endpoints-testing)
     - [🔗 Integration Testing](#-integration-testing)
     - [Command Line Options](#command-line-options)
+  - [� Output Formats](#-output-formats)
+    - [Available Formats](#available-formats)
+    - [Output Format Examples](#output-format-examples)
+      - [Detailed Format (Default)](#detailed-format-default)
+      - [Compact Format](#compact-format)
+      - [Minimal Format](#minimal-format)
+      - [Quiet Mode](#quiet-mode)
+    - [Compatible CLI Syntax](#compatible-cli-syntax)
+    - [Alternative Output Formats](#alternative-output-formats)
+    - [Output Control Options](#output-control-options)
+    - [Migration Examples](#migration-examples)
   - [📝 Scenario Files](#-scenario-files)
     - [✨ Features:](#-features)
     - [📋 Example JSON Scenario:](#-example-json-scenario)
@@ -268,7 +285,7 @@ pulzr --url https://httpbin.org/get --webui --output results \
       -c 15 -r 25 -d 90 --random-ua
 
 # Headless mode with CSV only
-pulzr --url https://httpbin.org/get --no-tui --output batch_test \
+pulzr --url https://httpbin.org/get --headless --output batch_test \
       -c 30 -d 120 -r 50
 ```
 
@@ -292,13 +309,16 @@ pulzr --url https://httpbin.org/user-agent --ua-file agents.txt --webui -c 5
 ### ⚡ Performance Testing
 ```bash
 # High-throughput test
-pulzr --url https://httpbin.org/get -c 100 -r 500 -d 300 --no-tui
+pulzr --url https://httpbin.org/get -c 100 -r 500 -d 300 --headless
 
 # Sustained load test
 pulzr --url https://httpbin.org/get -c 25 -r 50 -d 1800 --webui
 
 # Burst testing
 pulzr --url https://httpbin.org/get -c 200 -d 60 --webui
+
+# Request count performance test
+pulzr --url https://httpbin.org/get -c 50 -n 10000 --headless --output perf_test
 ```
 
 ### 📝 Scenario-Based Testing
@@ -380,11 +400,132 @@ pulzr --url https://httpbin.org/get --webui --websocket \
 | `--webui` | | Enable Web Dashboard (auto-disables TUI) | false |
 | `--webui-port` | | Web Dashboard port | 9622 |
 | `--open-browser` | | Auto-open WebUI in default browser | false |
-| `--no-tui` | | Disable TUI interface | false |
-| `--timeout` | | Request timeout in seconds | None |
+| `--headless` | | Run in headless mode (disable TUI display) | false |
+| `--no-tui` | | Alias for --headless (backward compatibility) | false |
+| `--quiet` | `-q` | Quiet mode - minimal output (only final summary) | false |
+| `--output-format` | | Output format (detailed, compact, minimal) | detailed |
+| `--timeout` | `-t` | Request timeout in seconds | None |
+| `--latencies` | `-l` | Print latency statistics (enables latency distribution) | false |
+| `--requests` | `-n` | Total number of requests to make | None |
+| `--body` | `-b` | Request body (alias for payload) | None |
+| `--body-file` | `-f` | File to use as request body | None |
+| `--insecure` | `-k` | Skip TLS certificate verification | false |
+| `--http1` | | Force HTTP/1.x protocol | false |
+| `--http2` | | Enable HTTP/2.0 protocol | false |
+| `--cert` | | Path to client TLS certificate | None |
+| `--key` | | Path to client TLS certificate private key | None |
+| `--print` | `-P` | Control output sections (intro,progress,result) | All |
+| `--no-print` | | Don't output anything (compatibility mode) | false |
+| `--format` | `-O` | Output format (plain-text, json) | None |
+| `--connections` | | Alias for --concurrent | 10 |
+| `--rate` | | Alias for --rps | None |
 | `--verbose` | `-v` | Verbose output | false |
 | `--debug` | | Enable debug mode with detailed request/response logging | false |
 | `--debug-level` | | Debug verbosity level (1-3): 1=basic, 2=headers, 3=full | 1 |
+| `--examples` | | Show usage examples and exit | N/A |
+
+## 📋 Output Formats
+
+Pulzr supports multiple output formats to match different use cases and preferences:
+
+### Available Formats
+
+| Format | Description | Use Case |
+|--------|-------------|----------|
+| `detailed` | Full verbose output with all statistics (default) | Development, analysis |
+| `compact` | Aligned statistics output with progress bar | Automation, CI/CD |
+| `minimal` | Single-line summary | Scripts, quiet automation |
+
+### Output Format Examples
+
+#### Detailed Format (Default)
+```bash
+pulzr --url https://httpbin.org/get -c 10 -d 30
+# Shows full statistics with sections for response times, status codes, errors, etc.
+```
+
+#### Compact Format
+```bash
+pulzr --url https://httpbin.org/get -c 10 -d 30 --output-format compact
+# Output:
+# Load testing https://httpbin.org/get for 30s using 10 connections
+# [=========================================================================] 30s Done!
+# Statistics        Avg      Stdev        Max
+#   Reqs/sec       45.67      4.56        52
+#   Latency      21.86ms    2.45ms    89.23ms
+#   Latency Distribution
+#      50%    20.15ms
+#      75%    22.67ms
+#      90%    25.89ms
+#      99%    45.12ms
+#   HTTP codes:
+#     1xx - 0, 2xx - 1370, 3xx - 0, 4xx - 0, 5xx - 0
+#   Throughput:     2.34MB/s
+```
+
+#### Minimal Format
+```bash
+pulzr --url https://httpbin.org/get -c 10 -d 30 --output-format minimal
+# Output: 1370 requests in 30.00s, 0 failed, 45.67 req/s
+```
+
+#### Quiet Mode
+```bash
+pulzr --url https://httpbin.org/get -c 10 -d 30 --quiet
+# Shows only minimal output regardless of format, suppresses progress messages
+```
+
+### Compatible CLI Syntax
+
+Pulzr supports alternative command-line syntax for easy migration:
+
+```bash
+# Positional URL argument
+pulzr https://httpbin.org/get -c 50 -d 30
+
+# Alternative flag names
+pulzr https://example.com --connections 25 --rate 100 --timeout 10 --latencies
+
+# Request body options
+pulzr https://api.example.com -c 10 --body '{"test": "data"}' --method POST
+pulzr https://api.example.com -c 10 --body-file request.json --method PUT
+
+# Output control
+pulzr https://example.com -c 10 -d 30 --format json --no-print
+pulzr https://example.com -c 10 -d 30 --format plain-text --latencies
+pulzr https://example.com -c 10 --print result --format json
+```
+
+### Alternative Output Formats
+
+| Format | Flag | Description |
+|--------|------|-------------|
+| `plain-text` (alias: `pt`) | `--format plain-text` | Structured text output with statistics table |
+| `json` (alias: `j`) | `--format json` | JSON formatted results for parsing |
+
+### Output Control Options
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--print intro,progress,result` | Control which sections to show | `--print result` |
+| `--no-print` | Silent mode (no output) | `--no-print` |
+| `--latencies` | Enable latency distribution display | `-l` |
+
+### Migration Examples
+
+```bash
+# Basic load test with structured output
+pulzr -c 125 -d 10 --latencies --format plain-text https://example.com
+
+# JSON output for automation
+pulzr --connections 50 --duration 30 --format json https://api.example.com
+
+# Silent operation with request count
+pulzr -c 10 -n 1000 --no-print https://example.com
+
+# File-based request body
+pulzr -c 25 -d 60 --body-file payload.json --method POST https://api.example.com
+```
 
 ## 📝 Scenario Files
 
@@ -900,7 +1041,7 @@ The WebUI provides a clean, modern web interface with real-time monitoring and d
 ### 🎮 WebUI vs TUI:
 - **WebUI Mode**: `--webui` automatically disables TUI for clean web-only experience
 - **TUI Mode**: Default terminal interface with sparkline charts and live metrics
-- **Headless Mode**: `--no-tui` for automation and CI/CD pipelines
+- **Headless Mode**: `--headless` for automation and CI/CD pipelines (alias: `--no-tui`)
 
 ### 💡 Usage Examples:
 ```bash
@@ -1093,7 +1234,7 @@ The Terminal User Interface provides a rich, real-time monitoring experience in 
 ### When to Use TUI vs WebUI:
 - **TUI**: Default mode, great for development and quick tests
 - **WebUI**: Use `--webui` for detailed request logging and browser-based monitoring
-- **Headless**: Use `--no-tui` for automation, CI/CD, or background processes
+- **Headless**: Use `--headless` for automation, CI/CD, or background processes
 
 ### TUI Controls:
 | Key | Action |
@@ -1443,7 +1584,7 @@ pulzr --url https://httpbin.org/post --webui --open-browser \
 ### Performance Benchmarking
 ```bash
 # High-throughput performance test
-pulzr --url https://httpbin.org/get -c 200 -r 1000 -d 300 --no-tui \
+pulzr --url https://httpbin.org/get -c 200 -r 1000 -d 300 --headless \
       --output performance_benchmark
 
 # Sustained load test (30 minutes)
@@ -1465,13 +1606,23 @@ pulzr --url https://httpbin.org/user-agent --ua-file custom_agents.txt \
 
 ### CI/CD Integration
 ```bash
-# Automated testing in CI pipeline
-pulzr --url $API_ENDPOINT --no-tui -c 10 -r 20 -d 60 \
-      --output ci_test_results --timeout 5
+# Automated testing in CI pipeline - compact output
+pulzr --url $API_ENDPOINT --headless --output-format compact \
+      -c 10 -r 20 -d 60 --output ci_test_results --timeout 5
+
+# Quiet automation for scripts
+pulzr --url $API_ENDPOINT --quiet -c 5 -d 30
 
 # Health check with WebSocket monitoring
-pulzr --url https://httpbin.org/get --websocket --no-tui \
+pulzr --url https://httpbin.org/get --websocket --headless \
       -c 5 -r 10 -d 120 | curl -X POST -d @- $MONITORING_WEBHOOK
+
+# Minimal output for log parsing
+pulzr --url $API_ENDPOINT --output-format minimal --headless \
+      -c 10 -d 60 >> load_test.log
+
+# Request count mode for CI testing
+pulzr --url $API_ENDPOINT --headless -c 5 -n 100 --output ci_results --timeout 10
 ```
 
 ## License

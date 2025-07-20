@@ -1,5 +1,6 @@
 use clap::Parser;
 use pulzr::cli::{Cli, OutputFormatExtended};
+use pulzr::TlsConfig;
 
 #[test]
 fn test_cli_basic_parsing() {
@@ -327,4 +328,123 @@ fn test_cli_examples_flag() {
     let cli = Cli::try_parse_from(args).unwrap();
 
     assert!(cli.examples);
+}
+
+// TLS Configuration Tests
+#[test]
+fn test_tls_config_creation_from_cli() {
+    // Test default TLS config
+    let args = vec!["pulzr", "http://example.com"];
+    let _cli = Cli::try_parse_from(args).unwrap();
+
+    let tls_config = TlsConfig::new();
+    assert!(!tls_config.insecure);
+    assert!(tls_config.cert_path.is_none());
+    assert!(tls_config.key_path.is_none());
+    assert!(tls_config.validate().is_ok());
+}
+
+#[test]
+fn test_tls_config_insecure_mode() {
+    let args = vec!["pulzr", "http://example.com", "--insecure"];
+    let cli = Cli::try_parse_from(args).unwrap();
+
+    let mut tls_config = TlsConfig::new();
+    if cli.insecure {
+        tls_config.insecure = true;
+    }
+
+    assert!(tls_config.insecure);
+    assert!(tls_config.validate().is_ok());
+}
+
+#[test]
+fn test_tls_config_validation_missing_cert() {
+    use std::path::PathBuf;
+
+    let mut tls_config = TlsConfig::new();
+    tls_config.cert_path = Some(PathBuf::from("/nonexistent/cert.pem"));
+    // Missing key_path should cause validation error
+
+    assert!(tls_config.validate().is_err());
+    let error = tls_config.validate().unwrap_err();
+    assert!(error.to_string().contains("private key path is missing"));
+}
+
+#[test]
+fn test_tls_config_validation_missing_key() {
+    use std::path::PathBuf;
+
+    let mut tls_config = TlsConfig::new();
+    tls_config.key_path = Some(PathBuf::from("/nonexistent/key.pem"));
+    // Missing cert_path should cause validation error
+
+    assert!(tls_config.validate().is_err());
+    let error = tls_config.validate().unwrap_err();
+    assert!(error.to_string().contains("certificate path is missing"));
+}
+
+#[test]
+fn test_tls_config_apply_insecure_mode() {
+    let tls_config = TlsConfig::insecure();
+    let builder = reqwest::Client::builder();
+
+    // This should not panic
+    let result = tls_config.apply_to_client_builder(builder);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_tls_info_summary() {
+    // Test default config summary
+    let tls_config = TlsConfig::new();
+    let info = tls_config.get_summary();
+    assert!(info.mode.contains("Secure"));
+    assert!(!info.client_cert);
+
+    // Test insecure config summary
+    let tls_config = TlsConfig::insecure();
+    let info = tls_config.get_summary();
+    assert!(info.mode.contains("Insecure"));
+    assert!(!info.client_cert);
+}
+
+#[test]
+fn test_tls_config_with_cli_args() {
+    use std::path::PathBuf;
+
+    // Test creating TLS config from CLI args with cert and key
+    let args = vec![
+        "pulzr",
+        "http://example.com",
+        "--cert",
+        "/path/to/cert.pem",
+        "--key",
+        "/path/to/key.pem",
+        "--insecure",
+    ];
+    let cli = Cli::try_parse_from(args).unwrap();
+
+    // Simulate the logic from main.rs
+    let mut tls_config = TlsConfig::new();
+
+    if cli.insecure {
+        tls_config.insecure = true;
+    }
+
+    if let (Some(cert), Some(key)) = (&cli.cert, &cli.key) {
+        tls_config.cert_path = Some(cert.clone());
+        tls_config.key_path = Some(key.clone());
+    }
+
+    assert!(tls_config.insecure);
+    assert_eq!(
+        tls_config.cert_path,
+        Some(PathBuf::from("/path/to/cert.pem"))
+    );
+    assert_eq!(tls_config.key_path, Some(PathBuf::from("/path/to/key.pem")));
+    assert!(tls_config.has_client_cert());
+
+    // Note: validation will fail since files don't exist, but structure is correct
+    assert!(tls_config.validate().is_err());
 }

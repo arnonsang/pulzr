@@ -22,7 +22,7 @@ use pulzr::{
     user_agent::UserAgentManager,
     websocket::{TestConfig, WebSocketMessage, WebSocketServer},
     webui::start_web_server,
-    Http2Config,
+    Http2Config, TlsConfig,
 };
 use std::sync::Arc;
 use std::time::Duration;
@@ -159,6 +159,26 @@ fn create_http2_config(cli: &Cli) -> Result<Http2Config> {
     Ok(config)
 }
 
+fn create_tls_config(cli: &Cli) -> Result<TlsConfig> {
+    let mut config = TlsConfig::new();
+
+    // Set insecure mode if requested
+    if cli.insecure {
+        config.insecure = true;
+    }
+
+    // Set client certificate and key if provided
+    if let (Some(cert), Some(key)) = (&cli.cert, &cli.key) {
+        config.cert_path = Some(cert.clone());
+        config.key_path = Some(key.clone());
+    }
+
+    // Validate the configuration
+    config.validate()?;
+
+    Ok(config)
+}
+
 fn print_examples() {
     println!("📚 Pulzr Load Testing Examples\n");
 
@@ -220,6 +240,19 @@ fn print_examples() {
     println!("  pulzr https://http2.github.io --http2 -c 50 -d 30");
     println!();
 
+    println!("🔒 TLS & Security:");
+    println!("  # Skip certificate verification (insecure)");
+    println!("  pulzr https://self-signed.badssl.com --insecure -c 5 -n 10");
+    println!("  ");
+    println!("  # Client certificate authentication");
+    println!("  pulzr https://api.example.com --cert client.pem --key client.key -c 10 -d 30");
+    println!("  ");
+    println!("  # Client cert with insecure mode");
+    println!(
+        "  pulzr https://api.example.com --cert client.pem --key client.key --insecure -c 5 -n 100"
+    );
+    println!();
+
     println!("🔗 Integration & CI/CD:");
     println!("  # CI/CD automation");
     println!("  pulzr $API_ENDPOINT --headless -c 5 -n 100 --timeout 10 --output ci_results");
@@ -242,6 +275,8 @@ fn print_examples() {
     println!("  • Use --format json for automation and CI/CD pipelines");
     println!("  • Use --random-ua for more realistic traffic simulation");
     println!("  • Use --output to export detailed CSV reports");
+    println!("  • Use --insecure for testing self-signed certificates");
+    println!("  • Use --cert/--key for client certificate authentication");
     println!();
 
     println!("📖 For more examples and documentation:");
@@ -412,6 +447,9 @@ async fn main() -> Result<()> {
     // Setup HTTP/2 configuration
     let http2_config = Arc::new(create_http2_config(&cli)?);
 
+    // Setup TLS configuration
+    let tls_config = Arc::new(create_tls_config(&cli)?);
+
     let client = Arc::new(HttpClient::new(
         cli.get_url()
             .cloned()
@@ -424,6 +462,7 @@ async fn main() -> Result<()> {
         cli.timeout.map(Duration::from_secs),
         Arc::clone(&auth_method),
         Arc::clone(&http2_config),
+        Arc::clone(&tls_config),
     )?);
 
     let rate_limiter = Arc::new(RequestRateLimiter::new(cli.rps));
@@ -625,6 +664,15 @@ async fn main() -> Result<()> {
     println!("Protocol: {}", protocol_info.protocol);
     if !protocol_info.features.is_empty() {
         println!("Features: {}", protocol_info.features.join(", "));
+    }
+
+    // Display TLS configuration
+    let tls_info = tls_config.get_summary();
+    println!("TLS Mode: {}", tls_info.mode);
+    if tls_info.client_cert {
+        if let Some(cert_path) = &tls_info.cert_path {
+            println!("Client Certificate: {}", cert_path.display());
+        }
     }
 
     if cli.debug {

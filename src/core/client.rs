@@ -1,5 +1,5 @@
 use crate::auth::AuthMethod;
-use crate::network::Http2Config;
+use crate::network::{Http2Config, TlsConfig};
 use crate::stats::{RequestResult, StatsCollector};
 use crate::user_agent::UserAgentManager;
 use anyhow::Result;
@@ -19,6 +19,7 @@ pub struct HttpClient {
     stats_collector: Arc<StatsCollector>,
     auth_method: Arc<AuthMethod>,
     http2_config: Arc<Http2Config>,
+    tls_config: Arc<TlsConfig>,
 }
 
 impl HttpClient {
@@ -33,6 +34,7 @@ impl HttpClient {
         timeout: Option<Duration>,
         auth_method: Arc<AuthMethod>,
         http2_config: Arc<Http2Config>,
+        tls_config: Arc<TlsConfig>,
     ) -> Result<Self> {
         let mut client_builder = Client::builder();
 
@@ -42,6 +44,9 @@ impl HttpClient {
 
         // Apply HTTP/2 configuration
         client_builder = http2_config.apply_to_client_builder(client_builder);
+
+        // Apply TLS configuration
+        client_builder = tls_config.apply_to_client_builder(client_builder)?;
 
         let client = client_builder.build()?;
 
@@ -69,6 +74,7 @@ impl HttpClient {
             stats_collector,
             auth_method,
             http2_config,
+            tls_config,
         })
     }
 
@@ -166,7 +172,15 @@ impl HttpClient {
         &self.http2_config
     }
 
+    pub fn get_tls_config(&self) -> &TlsConfig {
+        &self.tls_config
+    }
+
     pub fn get_protocol_info(&self) -> crate::network::ProtocolInfo {
         self.http2_config.get_protocol_info()
+    }
+
+    pub fn get_tls_info(&self) -> crate::network::TlsInfo {
+        self.tls_config.get_summary()
     }
 }

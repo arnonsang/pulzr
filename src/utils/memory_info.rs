@@ -3,7 +3,7 @@ use std::fs;
 #[cfg(target_os = "linux")]
 use std::io::{BufRead, BufReader};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SystemMemoryInfo {
     pub total_mb: f64,
     pub available_mb: f64,

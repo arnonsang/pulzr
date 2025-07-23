@@ -1,4 +1,4 @@
-use crate::client::HttpClient;
+use crate::core::client::HttpClient;
 use crate::debug::DebugConfig;
 use crate::endpoints::{Endpoint, MultiEndpointConfig};
 use crate::ramp_up::RampUpConfig;

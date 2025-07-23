@@ -291,6 +291,48 @@ pub struct Cli {
     #[arg(long, help = "Set HTTP/2 max frame size")]
     pub http2_max_frame_size: Option<u32>,
 
+    // Distributed load testing options
+    #[arg(long, help = "Run as distributed coordinator")]
+    pub coordinator: bool,
+
+    #[arg(long, default_value = "9630", help = "Coordinator listening port")]
+    pub coordinator_port: u16,
+
+    #[arg(
+        long,
+        default_value = "100",
+        help = "Maximum number of workers to accept"
+    )]
+    pub max_workers: usize,
+
+    #[arg(long, help = "Run as distributed worker")]
+    pub worker: bool,
+
+    #[arg(
+        long,
+        help = "Coordinator host to connect to (required for worker mode)"
+    )]
+    pub coordinator_host: Option<String>,
+
+    #[arg(long, help = "Worker ID (auto-generated if not specified)")]
+    pub worker_id: Option<String>,
+
+    #[arg(
+        long,
+        default_value = "1000",
+        help = "Maximum concurrent requests for this worker"
+    )]
+    pub worker_max_concurrent: usize,
+
+    #[arg(long, help = "Maximum RPS for this worker")]
+    pub worker_max_rps: Option<u64>,
+
+    #[arg(
+        long,
+        help = "Run distributed test client (connect to coordinator and send test)"
+    )]
+    pub distributed_client: bool,
+
     #[arg(long, help = "Show usage examples and exit")]
     pub examples: bool,
 }
@@ -388,5 +430,57 @@ impl Cli {
     /// Get effective quiet mode (from either --quiet or --no-print)
     pub fn is_quiet(&self) -> bool {
         self.quiet || self.no_print
+    }
+
+    /// Check if running in distributed coordinator mode
+    pub fn is_coordinator_mode(&self) -> bool {
+        self.coordinator
+    }
+
+    /// Check if running in distributed worker mode
+    pub fn is_worker_mode(&self) -> bool {
+        self.worker
+    }
+
+    /// Check if running in distributed client mode
+    pub fn is_distributed_client_mode(&self) -> bool {
+        self.distributed_client
+    }
+
+    /// Check if any distributed mode is enabled
+    pub fn is_distributed_mode(&self) -> bool {
+        self.coordinator || self.worker || self.distributed_client
+    }
+
+    /// Get coordinator host for worker mode (defaults to localhost)
+    pub fn get_coordinator_host(&self) -> String {
+        self.coordinator_host
+            .clone()
+            .unwrap_or_else(|| "localhost".to_string())
+    }
+
+    /// Validate distributed mode configuration
+    pub fn validate_distributed_config(&self) -> Result<(), String> {
+        // Check that only one distributed mode is enabled
+        let modes_count = [self.coordinator, self.worker, self.distributed_client]
+            .iter()
+            .filter(|&&x| x)
+            .count();
+
+        if modes_count > 1 {
+            return Err("Only one distributed mode can be enabled at a time".to_string());
+        }
+
+        // Worker mode requires coordinator host
+        if self.worker && self.coordinator_host.is_none() {
+            return Err("Worker mode requires --coordinator-host".to_string());
+        }
+
+        // Distributed client mode requires coordinator host
+        if self.distributed_client && self.coordinator_host.is_none() {
+            return Err("Distributed client mode requires --coordinator-host".to_string());
+        }
+
+        Ok(())
     }
 }

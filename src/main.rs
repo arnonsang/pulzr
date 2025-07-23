@@ -7,6 +7,10 @@ use pulzr::{
     cli::{Cli, OutputFormat, OutputFormatExtended},
     client::HttpClient,
     debug::DebugConfig,
+    distributed::{
+        CoordinatorConfig, DistributedClient, DistributedCoordinator, DistributedWorker,
+        WorkerConfig,
+    },
     endpoints::MultiEndpointConfig,
     export::CsvExporter,
     get_process_memory_usage, get_system_memory_info,
@@ -261,6 +265,19 @@ fn print_examples() {
     println!("  pulzr https://api.example.com --websocket --headless -c 3 -d 60");
     println!();
 
+    println!("🌐 Distributed Load Testing:");
+    println!("  # Start coordinator (on main machine)");
+    println!("  pulzr --coordinator --coordinator-port 9630");
+    println!("  ");
+    println!("  # Start workers (on different machines)");
+    println!("  pulzr --worker --coordinator-host 192.168.1.100 --worker-id worker-1");
+    println!("  pulzr --worker --coordinator-host 192.168.1.100 --worker-id worker-2");
+    println!("  ");
+    println!("  # Custom worker configuration");
+    println!("  pulzr --worker --coordinator-host coordinator.example.com \\");
+    println!("        --worker-max-concurrent 500 --worker-max-rps 1000");
+    println!();
+
     println!("📋 Alternative Syntax");
     println!("  # Positional URL with enhanced flags");
     println!("  pulzr -c 25 -n 1000 --latencies --format json https://example.com");
@@ -277,10 +294,87 @@ fn print_examples() {
     println!("  • Use --output to export detailed CSV reports");
     println!("  • Use --insecure for testing self-signed certificates");
     println!("  • Use --cert/--key for client certificate authentication");
+    println!("  • Use --coordinator to run distributed coordinator");
+    println!("  • Use --worker to run distributed worker nodes");
     println!();
 
     println!("📖 For more examples and documentation:");
     println!("  https://github.com/yourusername/pulzr");
+}
+
+async fn handle_distributed_mode(cli: &Cli) -> Result<()> {
+    let stats_collector = Arc::new(StatsCollector::new());
+
+    if cli.is_coordinator_mode() {
+        println!("🎯 Starting Distributed Load Testing Coordinator");
+
+        let config = CoordinatorConfig {
+            coordinator_id: format!("coordinator-{}", uuid::Uuid::new_v4()),
+            port: cli.coordinator_port,
+            max_workers: cli.max_workers,
+            heartbeat_timeout_secs: 30,
+            heartbeat_check_interval_secs: 10,
+            auto_balance_load: true,
+        };
+
+        let mut coordinator = DistributedCoordinator::new(config, stats_collector);
+        let actual_port = coordinator.start().await?;
+
+        println!("Coordinator started on port: {}", actual_port);
+        println!(
+            "Workers can connect using: --worker --coordinator-host <host>:{}",
+            actual_port
+        );
+        println!("Press Ctrl+C to shutdown");
+
+        // Wait for shutdown signal
+        signal::ctrl_c().await?;
+        println!("\nShutdown signal received");
+    } else if cli.is_worker_mode() {
+        println!("🔧 Starting Distributed Load Testing Worker");
+
+        let worker_id = cli
+            .worker_id
+            .clone()
+            .unwrap_or_else(|| format!("worker-{}", uuid::Uuid::new_v4()));
+
+        let config = WorkerConfig {
+            worker_id: worker_id.clone(),
+            coordinator_host: cli.get_coordinator_host(),
+            coordinator_port: cli.coordinator_port,
+            max_concurrent_requests: cli.worker_max_concurrent,
+            max_rps: cli.worker_max_rps,
+            heartbeat_interval_secs: 10,
+            metrics_interval_secs: 5,
+            connection_retry_interval_secs: 5,
+            max_connection_retries: 10,
+            connection_timeout_secs: 30,
+        };
+
+        println!("Worker ID: {}", worker_id);
+        println!(
+            "Connecting to coordinator: {}:{}",
+            config.coordinator_host, config.coordinator_port
+        );
+
+        let mut worker = DistributedWorker::new(config, stats_collector);
+        worker.start().await?;
+    } else if cli.is_distributed_client_mode() {
+        println!("📡 Starting Distributed Load Testing Client");
+
+        let coordinator_host = cli.get_coordinator_host();
+        let _client = DistributedClient::new(&coordinator_host, cli.coordinator_port);
+
+        // For now, just demonstrate connection
+        println!(
+            "Connecting to coordinator: {}:{}",
+            coordinator_host, cli.coordinator_port
+        );
+        println!("Distributed client mode is a basic implementation for demonstration");
+        println!("Use --coordinator and --worker flags to set up distributed testing");
+    }
+
+    Ok(())
 }
 
 #[tokio::main]
@@ -291,6 +385,17 @@ async fn main() -> Result<()> {
     if cli.examples {
         print_examples();
         std::process::exit(0);
+    }
+
+    // Validate distributed configuration
+    if let Err(e) = cli.validate_distributed_config() {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+
+    // Handle distributed modes
+    if cli.is_distributed_mode() {
+        return handle_distributed_mode(&cli).await;
     }
 
     // Handle memory optimization demo command

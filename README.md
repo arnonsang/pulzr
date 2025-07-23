@@ -6,7 +6,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/arnonsang/pulzr?style=for-the-badge)](https://github.com/arnonsang/pulzr/stargazers)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/arnonsang/pulzr/ci.yml?branch=main&style=for-the-badge)](https://github.com/arnonsang/pulzr/actions)
 
-A load testing tool written in Rust with TUI and WebUI interfaces for comprehensive performance testing.
+A http load testing tool written in Rust with TUI and WebUI interfaces for comprehensive performance testing.
 
 
 > ⚠️**Note:** This is a my rust practice project I put together in just 2 days to explore a use case of my own.
@@ -36,10 +36,16 @@ A load testing tool written in Rust with TUI and WebUI interfaces for comprehens
 - **Prometheus Export**: Standard metrics endpoint for monitoring integrations
 - **Memory Optimization**: Streaming stats with bounded memory usage for long tests
 - **HTTP/2 Support**: Modern protocol with multiplexing and header compression
+- **Distributed Load Testing**: Scale tests across multiple machines with coordinator-worker architecture
 
 ## Installation
 
-### Quick Install (Recommended)
+### From Cargo (Recommended)
+```bash
+cargo install pulzr
+```
+
+### Quick Install Script
 ```bash
 curl -fsSL https://raw.githubusercontent.com/arnonsang/pulzr/main/install.sh | bash
 ```
@@ -102,18 +108,19 @@ pulzr --url https://httpbin.org/get --webui --open-browser -c 10 -n 1000
     - [WebUI Mode (Recommended)](#webui-mode-recommended)
   - [Table of Contents](#table-of-contents)
   - [Usage Examples](#usage-examples)
-    - [🌐 WebUI Testing](#-webui-testing)
-    - [📊 TUI Testing](#-tui-testing)
-    - [🔧 HTTP Methods \& Payloads](#-http-methods--payloads)
-    - [📈 Data Export \& Analysis](#-data-export--analysis)
-    - [🎯 Specialized Testing](#-specialized-testing)
-    - [⚡ Performance Testing](#-performance-testing)
-    - [📝 Scenario-Based Testing](#-scenario-based-testing)
-    - [📈 Ramp-up Load Testing](#-ramp-up-load-testing)
-    - [🔗 Multiple Endpoints Testing](#-multiple-endpoints-testing)
-    - [🔗 Integration Testing](#-integration-testing)
+    - [WebUI Testing](#webui-testing)
+    - [TUI Testing](#tui-testing)
+    - [HTTP Methods \& Payloads](#http-methods--payloads)
+    - [Data Export \& Analysis](#data-export--analysis)
+    - [Specialized Testing](#specialized-testing)
+    - [Performance Testing](#performance-testing)
+    - [Scenario-Based Testing](#scenario-based-testing)
+    - [Ramp-up Load Testing](#ramp-up-load-testing)
+    - [Multiple Endpoints Testing](#multiple-endpoints-testing)
+    - [Integration Testing](#integration-testing)
+    - [Distributed Load Testing](#distributed-load-testing)
     - [Command Line Options](#command-line-options)
-  - [� Output Formats](#-output-formats)
+  - [Output Formats](#output-formats)
     - [Available Formats](#available-formats)
     - [Output Format Examples](#output-format-examples)
       - [Detailed Format (Default)](#detailed-format-default)
@@ -124,65 +131,65 @@ pulzr --url https://httpbin.org/get --webui --open-browser -c 10 -n 1000
     - [Alternative Output Formats](#alternative-output-formats)
     - [Output Control Options](#output-control-options)
     - [Migration Examples](#migration-examples)
-  - [📝 Scenario Files](#-scenario-files)
-    - [✨ Features:](#-features)
-    - [📋 Example JSON Scenario:](#-example-json-scenario)
-    - [📋 Example YAML Scenario:](#-example-yaml-scenario)
-    - [🚀 Scenario Usage:](#-scenario-usage)
-    - [⚙️ Scenario Configuration:](#️-scenario-configuration)
-    - [🎯 Step Configuration:](#-step-configuration)
-    - [🔄 Variable Substitution:](#-variable-substitution)
-    - [📊 Weighted Distribution:](#-weighted-distribution)
-  - [📈 Ramp-up Patterns](#-ramp-up-patterns)
-    - [✨ Features:](#-features-1)
-    - [📊 Ramp-up Patterns:](#-ramp-up-patterns-1)
+  - [Scenario Files](#scenario-files)
+    - [Features](#features)
+    - [Example JSON Scenario](#example-json-scenario)
+    - [Example YAML Scenario](#example-yaml-scenario)
+    - [Scenario Usage](#scenario-usage)
+    - [Scenario Configuration](#scenario-configuration)
+    - [Step Configuration](#step-configuration)
+    - [Variable Substitution](#variable-substitution)
+    - [Weighted Distribution](#weighted-distribution)
+  - [Ramp-up Patterns](#ramp-up-patterns)
+    - [Features](#features-1)
+    - [Ramp-up Patterns](#ramp-up-patterns-1)
       - [1. **Linear Pattern** (`--ramp-pattern linear`)](#1-linear-pattern---ramp-pattern-linear)
       - [2. **Exponential Pattern** (`--ramp-pattern exponential`)](#2-exponential-pattern---ramp-pattern-exponential)
       - [3. **Step Pattern** (`--ramp-pattern step`)](#3-step-pattern---ramp-pattern-step)
-    - [🚀 Ramp-up Usage Examples:](#-ramp-up-usage-examples)
-    - [⚙️ Ramp-up Configuration:](#️-ramp-up-configuration)
-    - [📊 Ramp-up Behavior:](#-ramp-up-behavior)
-    - [💡 Best Practices:](#-best-practices)
-  - [🔗 Multiple Endpoints](#-multiple-endpoints)
-    - [✨ Features:](#-features-2)
-    - [📋 Example Endpoints Configuration:](#-example-endpoints-configuration)
+    - [Ramp-up Usage Examples](#ramp-up-usage-examples)
+    - [Ramp-up Configuration](#ramp-up-configuration)
+    - [Ramp-up Behavior](#ramp-up-behavior)
+    - [Best Practices](#best-practices)
+  - [Multiple Endpoints](#multiple-endpoints)
+    - [Features](#features-2)
+    - [Example Endpoints Configuration](#example-endpoints-configuration)
       - [JSON Format:](#json-format)
-    - [🚀 Multiple Endpoints Usage:](#-multiple-endpoints-usage)
-    - [⚙️ Endpoint Configuration:](#️-endpoint-configuration)
-    - [📊 Weighted Distribution:](#-weighted-distribution-1)
-    - [💡 Use Cases:](#-use-cases)
+    - [Multiple Endpoints Usage](#multiple-endpoints-usage)
+    - [Endpoint Configuration](#endpoint-configuration)
+    - [Weighted Distribution](#weighted-distribution-1)
+    - [Use Cases](#use-cases)
       - [**Microservices Testing**:](#microservices-testing)
       - [**API Gateway Load Testing**:](#api-gateway-load-testing)
       - [**CI/CD Integration Testing**:](#cicd-integration-testing)
       - [**Capacity Planning**:](#capacity-planning)
-    - [🎯 Best Practices:](#-best-practices-1)
-  - [🐛 Debug Mode](#-debug-mode)
-    - [✨ Features:](#-features-3)
-    - [📋 Debug Levels:](#-debug-levels)
+    - [Best Practices](#best-practices-1)
+  - [Debug Mode](#debug-mode)
+    - [Features](#features-3)
+    - [Debug Levels](#debug-levels)
       - [**Level 1: Basic** (`--debug-level 1`)](#level-1-basic---debug-level-1)
       - [**Level 2: Headers** (`--debug-level 2`)](#level-2-headers---debug-level-2)
       - [**Level 3: Full** (`--debug-level 3`)](#level-3-full---debug-level-3)
-    - [🚀 Debug Usage Examples:](#-debug-usage-examples)
-    - [📋 Debug Output Example:](#-debug-output-example)
-    - [🎯 Use Cases:](#-use-cases-1)
+    - [Debug Usage Examples](#debug-usage-examples)
+    - [Debug Output Example](#debug-output-example)
+    - [Use Cases](#use-cases-1)
       - [**API Development \& Testing**:](#api-development--testing)
       - [**Issue Troubleshooting**:](#issue-troubleshooting)
       - [**Performance Analysis**:](#performance-analysis)
       - [**Authentication Debugging**:](#authentication-debugging)
-    - [💡 Debug Best Practices:](#-debug-best-practices)
-    - [⚠️ Important Notes:](#️-important-notes)
-  - [🌐 Web Dashboard](#-web-dashboard)
-    - [✨ Features:](#-features-4)
-    - [🎮 WebUI vs TUI:](#-webui-vs-tui)
-    - [💡 Usage Examples:](#-usage-examples)
-  - [📡 WebSocket API](#-websocket-api)
-    - [🔌 Connection](#-connection)
-    - [📨 Message Types](#-message-types)
-    - [📋 Message Examples](#-message-examples)
+    - [Debug Best Practices](#debug-best-practices)
+    - [Important Notes](#important-notes)
+  - [Web Dashboard](#web-dashboard)
+    - [Features](#features-4)
+    - [WebUI vs TUI](#webui-vs-tui)
+    - [Usage Examples](#usage-examples-1)
+  - [WebSocket API](#websocket-api)
+    - [Connection](#connection)
+    - [Message Types](#message-types)
+    - [Message Examples](#message-examples)
       - [Test Started](#test-started)
       - [Metrics Update](#metrics-update)
       - [Request Log (New!)](#request-log-new)
-    - [🔗 Integration Examples](#-integration-examples)
+    - [Integration Examples](#integration-examples)
       - [JavaScript WebSocket Client](#javascript-websocket-client)
       - [Python Monitoring Script](#python-monitoring-script)
   - [CSV Export](#csv-export)
@@ -195,12 +202,12 @@ pulzr --url https://httpbin.org/get --webui --open-browser -c 10 -n 1000
     - [TUI Controls:](#tui-controls)
     - [TUI Examples:](#tui-examples)
   - [Advanced Metrics \& Monitoring](#advanced-metrics--monitoring)
-    - [✨ Advanced Metrics Features:](#-advanced-metrics-features)
-    - [📋 Percentile Metrics:](#-percentile-metrics)
-    - [📊 Latency Histograms:](#-latency-histograms)
-    - [🚨 Smart Alerts:](#-smart-alerts)
-    - [📉 Performance Degradation Detection:](#-performance-degradation-detection)
-  - [🔐 Authentication \& Security](#-authentication--security)
+    - [Advanced Metrics Features](#advanced-metrics-features)
+    - [Percentile Metrics](#percentile-metrics)
+    - [Latency Histograms](#latency-histograms)
+    - [Smart Alerts](#smart-alerts)
+    - [Performance Degradation Detection](#performance-degradation-detection)
+  - [Authentication \& Security](#authentication--security)
     - [Authentication Features:](#authentication-features)
     - [JWT Authentication:](#jwt-authentication)
     - [API Key Authentication:](#api-key-authentication)
@@ -222,16 +229,44 @@ pulzr --url https://httpbin.org/get --webui --open-browser -c 10 -n 1000
     - [Protocol Information:](#protocol-information)
     - [Performance Benefits:](#performance-benefits)
     - [HTTP/2 Best Practices:](#http2-best-practices)
+  - [Distributed Load Testing](#distributed-load-testing-1)
+    - [Distributed Features](#distributed-features)
+    - [Architecture Overview](#architecture-overview)
+    - [Quick Start Guide](#quick-start-guide)
+      - [1. **Start the Coordinator**](#1-start-the-coordinator)
+      - [2. **Connect Workers** (run on different machines)](#2-connect-workers-run-on-different-machines)
+      - [3. **Run Distributed Tests** (from coordinator)](#3-run-distributed-tests-from-coordinator)
+    - [Coordinator Configuration](#coordinator-configuration)
+    - [Worker Configuration](#worker-configuration)
+    - [Load Distribution Algorithms](#load-distribution-algorithms)
+      - [**1. Round Robin Distribution** (Default)](#1-round-robin-distribution-default)
+      - [**2. Load-Based Distribution**](#2-load-based-distribution)
+      - [**3. Weighted Distribution**](#3-weighted-distribution)
+    - [Real-time Metrics Aggregation](#real-time-metrics-aggregation)
+    - [Geographic Distribution Examples](#geographic-distribution-examples)
+      - [**Multi-Region Setup**](#multi-region-setup)
+      - [**Hybrid Cloud Setup**](#hybrid-cloud-setup)
+    - [Fault Tolerance \& Recovery](#fault-tolerance--recovery)
+      - [**Automatic Worker Recovery**](#automatic-worker-recovery)
+      - [**Network Resilience**](#network-resilience)
+    - [Use Cases \& Best Practices](#use-cases--best-practices)
+      - [**Large-Scale Load Testing**](#large-scale-load-testing)
+      - [**Geographic Performance Testing**](#geographic-performance-testing)
+      - [**Microservices Stress Testing**](#microservices-stress-testing)
+      - [**CI/CD Distributed Testing**](#cicd-distributed-testing)
+    - [Performance Tips](#performance-tips)
+    - [Important Considerations](#important-considerations)
   - [Real-World Examples](#real-world-examples)
     - [API Testing with WebUI](#api-testing-with-webui)
     - [Performance Benchmarking](#performance-benchmarking)
     - [Stealth \& Security Testing](#stealth--security-testing)
     - [CI/CD Integration](#cicd-integration)
+    - [Distributed Load Testing](#distributed-load-testing-2)
   - [License](#license)
 
 ## Usage Examples
 
-### 🌐 WebUI Testing
+### WebUI Testing
 ```bash
 # Simple WebUI test with auto-browser opening (unlimited duration)
 pulzr --url https://httpbin.org/get --webui --open-browser
@@ -246,7 +281,7 @@ pulzr --url https://httpbin.org/post --method post \
       --webui --open-browser -c 15 -d 45
 ```
 
-### 📊 TUI Testing
+### TUI Testing
 ```bash
 # Basic TUI load test
 pulzr --url https://httpbin.org/get -c 10 -d 30
@@ -258,7 +293,7 @@ pulzr --url https://httpbin.org/get -c 50 -r 100 -d 120
 pulzr --url https://httpbin.org/user-agent --random-ua -c 3 -r 5 -d 300
 ```
 
-### 🔧 HTTP Methods & Payloads
+### HTTP Methods & Payloads
 ```bash
 # POST JSON data
 pulzr --url https://httpbin.org/post --method post \
@@ -275,7 +310,7 @@ pulzr --url https://httpbin.org/delete --method delete \
       --headers "Authorization: Bearer token123" -c 3 -d 10
 ```
 
-### 📈 Data Export & Analysis
+### Data Export & Analysis
 ```bash
 # Export detailed CSV reports
 pulzr --url https://httpbin.org/get -c 20 -d 60 --output load_test_results
@@ -289,7 +324,7 @@ pulzr --url https://httpbin.org/get --headless --output batch_test \
       -c 30 -d 120 -r 50
 ```
 
-### 🎯 Specialized Testing
+### Specialized Testing
 ```bash
 # Error testing (expect failures)
 pulzr --url https://httpbin.org/status/500 --webui -c 5 -d 30
@@ -306,7 +341,7 @@ echo -e "Bot-1/1.0\nBot-2/1.0\nBot-3/1.0" > agents.txt
 pulzr --url https://httpbin.org/user-agent --ua-file agents.txt --webui -c 5
 ```
 
-### ⚡ Performance Testing
+### Performance Testing
 ```bash
 # High-throughput test
 pulzr --url https://httpbin.org/get -c 100 -r 500 -d 300 --headless
@@ -321,7 +356,7 @@ pulzr --url https://httpbin.org/get -c 200 -d 60 --webui
 pulzr --url https://httpbin.org/get -c 50 -n 10000 --headless --output perf_test
 ```
 
-### 📝 Scenario-Based Testing
+### Scenario-Based Testing
 ```bash
 # JSON scenario file
 pulzr --scenario examples/api_test.json --concurrent 10 --duration 60
@@ -333,7 +368,7 @@ pulzr --scenario examples/load_test.yaml --webui --open-browser
 pulzr --scenario examples/complex_test.json -c 25 -d 300 --webui
 ```
 
-### 📈 Ramp-up Load Testing
+### Ramp-up Load Testing
 ```bash
 # Linear ramp-up over 30 seconds
 pulzr --url https://httpbin.org/get --ramp-up 30 --ramp-pattern linear -c 50
@@ -349,7 +384,7 @@ pulzr --url https://httpbin.org/get --ramp-up 20 --ramp-pattern step -c 20
 pulzr --scenario load_test.json --ramp-up 45 --ramp-pattern linear -c 30 -d 180
 ```
 
-### 🔗 Multiple Endpoints Testing
+### Multiple Endpoints Testing
 ```bash
 # Test multiple API endpoints simultaneously
 pulzr --endpoints examples/api_endpoints.json --concurrent 10 --duration 60
@@ -365,7 +400,7 @@ pulzr --endpoints examples/api_endpoints.json --ramp-up 30 --ramp-pattern linear
 pulzr --endpoints examples/api_endpoints.json -c 100 -r 200 -d 1800 --output results
 ```
 
-### 🔗 Integration Testing
+### Integration Testing
 ```bash
 # WebSocket server for external monitoring
 pulzr --url https://httpbin.org/get --websocket --websocket-port 9621 \
@@ -374,6 +409,24 @@ pulzr --url https://httpbin.org/get --websocket --websocket-port 9621 \
 # Combined WebUI + WebSocket
 pulzr --url https://httpbin.org/get --webui --websocket \
       --webui-port 9622 --websocket-port 9621 -c 15 -d 90
+```
+
+### Distributed Load Testing
+```bash
+# Start coordinator (central control)
+pulzr --coordinator --coordinator-port 9630 --max-workers 10
+
+# Connect workers from multiple machines
+pulzr --worker --coordinator-host 192.168.1.100 --coordinator-port 9630 \
+      --worker-id "worker-1"
+
+# Distributed test with automatic load distribution
+pulzr --url https://httpbin.org/get --coordinator --webui --open-browser \
+      -c 100 -r 200 -d 600
+
+# Worker with specific capabilities
+pulzr --worker --coordinator-host coordinator.example.com \
+      --worker-id "high-perf-worker" --max-concurrent 200 --max-rps 500
 ```
 
 ### Command Line Options
@@ -422,9 +475,17 @@ pulzr --url https://httpbin.org/get --webui --websocket \
 | `--verbose` | `-v` | Verbose output | false |
 | `--debug` | | Enable debug mode with detailed request/response logging | false |
 | `--debug-level` | | Debug verbosity level (1-3): 1=basic, 2=headers, 3=full | 1 |
+| `--coordinator` | | Run as distributed coordinator (central control) | false |
+| `--coordinator-port` | | Coordinator listening port | 9630 |
+| `--max-workers` | | Maximum workers allowed to connect | 100 |
+| `--worker` | | Run as distributed worker (connects to coordinator) | false |
+| `--coordinator-host` | | Coordinator hostname/IP to connect to | localhost |
+| `--worker-id` | | Unique worker identifier | auto-generated |
+| `--max-concurrent` | | Worker maximum concurrent requests | 100 |
+| `--max-rps` | | Worker maximum requests per second | None |
 | `--examples` | | Show usage examples and exit | N/A |
 
-## 📋 Output Formats
+## Output Formats
 
 Pulzr supports multiple output formats to match different use cases and preferences:
 
@@ -527,11 +588,12 @@ pulzr -c 10 -n 1000 --no-print https://example.com
 pulzr -c 25 -d 60 --body-file payload.json --method POST https://api.example.com
 ```
 
-## 📝 Scenario Files
+## Scenario Files
 
 Scenario files enable complex, multi-step load testing with variable substitution and weighted request distribution. Both JSON and YAML formats are supported.
 
-### ✨ Features:
+### Features
+
 - **Multi-step Testing**: Define multiple HTTP requests in sequence
 - **Weighted Distribution**: Control request frequency with weights  
 - **Variable Substitution**: Use `${variable}` syntax for dynamic values
@@ -539,7 +601,7 @@ Scenario files enable complex, multi-step load testing with variable substitutio
 - **Format Support**: Both JSON and YAML scenario files
 - **Default Overrides**: Scenario defaults can override CLI options
 
-### 📋 Example JSON Scenario:
+### Example JSON Scenario
 ```json
 {
   "name": "API Load Test",
@@ -587,7 +649,7 @@ Scenario files enable complex, multi-step load testing with variable substitutio
 }
 ```
 
-### 📋 Example YAML Scenario:
+### Example YAML Scenario
 ```yaml
 name: "E-commerce Load Test"
 description: "Shopping cart and checkout flow testing"
@@ -630,7 +692,7 @@ steps:
     weight: 1.0
 ```
 
-### 🚀 Scenario Usage:
+### Scenario Usage
 ```bash
 # Run JSON scenario file
 pulzr --scenario load_test.json
@@ -645,7 +707,7 @@ pulzr --scenario test.json -c 50 -d 600 --rps 100
 pulzr --scenario complex_test.yaml --output results --webui
 ```
 
-### ⚙️ Scenario Configuration:
+### Scenario Configuration
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -656,7 +718,7 @@ pulzr --scenario complex_test.yaml --output results --webui
 | `defaults` | Object | Default test configuration (overrides CLI) |
 | `steps` | Array | List of HTTP requests to execute |
 
-### 🎯 Step Configuration:
+### Step Configuration
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -668,23 +730,23 @@ pulzr --scenario complex_test.yaml --output results --webui
 | `timeout` | Number | Request timeout in seconds |
 | `weight` | Number | Request frequency weight (default: 1.0) |
 
-### 🔄 Variable Substitution:
+### Variable Substitution
 - Use `${variable_name}` syntax in URLs, payloads, and headers
 - Variables defined in the `variables` section
 - Special built-in variables: `${timestamp}` (current Unix timestamp)
 - Variables are replaced at runtime for each request
 
-### 📊 Weighted Distribution:
+### Weighted Distribution
 - Each step has a `weight` value (default: 1.0)
 - Higher weights = more frequent requests
 - Example: weight 3.0 = 3x more likely than weight 1.0
 - Total weights are normalized to create probability distribution
 
-## 📈 Ramp-up Patterns
+## Ramp-up Patterns
 
 Ramp-up patterns enable gradual load increase over time instead of starting with maximum concurrency immediately. This helps identify breaking points and simulates realistic traffic growth.
 
-### ✨ Features:
+### Features
 - **Gradual Load Increase**: Start with low concurrency and gradually increase
 - **Multiple Patterns**: Linear, exponential, and step-wise increase patterns
 - **Flexible Duration**: Configure ramp-up period from seconds to minutes
@@ -692,7 +754,7 @@ Ramp-up patterns enable gradual load increase over time instead of starting with
 - **Scenario Integration**: Works seamlessly with scenario-based testing
 - **Smart Transition**: Smooth transition from ramp-up to steady-state testing
 
-### 📊 Ramp-up Patterns:
+### Ramp-up Patterns
 
 #### 1. **Linear Pattern** (`--ramp-pattern linear`)
 Increases concurrency evenly over time:
@@ -712,7 +774,7 @@ Discrete jumps at quarter intervals:
 - Best for: Testing specific load thresholds, capacity planning
 - Example: 25 → 50 → 75 → 100 concurrent requests over 20 seconds
 
-### 🚀 Ramp-up Usage Examples:
+### Ramp-up Usage Examples
 
 ```bash
 # Basic linear ramp-up (30s to reach 50 concurrent)
@@ -735,7 +797,7 @@ pulzr --url https://httpbin.org/get --ramp-up 900 --ramp-pattern linear \
       -c 500 -d 3600 --rps 100 --output prod_readiness
 ```
 
-### ⚙️ Ramp-up Configuration:
+### Ramp-up Configuration
 
 | Parameter | Description | Values |
 |-----------|-------------|---------|
@@ -744,7 +806,7 @@ pulzr --url https://httpbin.org/get --ramp-up 900 --ramp-pattern linear \
 | `--concurrent` | Maximum concurrent requests | Final target concurrency |
 | `--duration` | Total test duration | Includes ramp-up + steady-state time |
 
-### 📊 Ramp-up Behavior:
+### Ramp-up Behavior
 
 1. **Initialization**: Starts with minimum concurrency (calculated based on pattern)
 2. **Ramp-up Phase**: Gradually increases workers every 500ms based on pattern
@@ -752,7 +814,7 @@ pulzr --url https://httpbin.org/get --ramp-up 900 --ramp-pattern linear \
 4. **Completion Detection**: Automatically transitions to steady-state when target reached
 5. **Steady State**: Continues at maximum concurrency for remaining test duration
 
-### 💡 Best Practices:
+### Best Practices
 
 - **Linear**: Use for general load testing and finding gradual performance degradation
 - **Exponential**: Use for stress testing and simulating sudden traffic bursts  
@@ -761,11 +823,11 @@ pulzr --url https://httpbin.org/get --ramp-up 900 --ramp-pattern linear \
 - **Monitoring**: Use WebUI (`--webui`) for visual monitoring during ramp-up
 - **Scenarios**: Combine with scenario files for realistic multi-endpoint ramp-up
 
-## 🔗 Multiple Endpoints
+## Multiple Endpoints
 
 Multiple endpoints testing enables simultaneous load testing of different APIs with weighted distribution, perfect for testing microservices, API gateways, and complex system integrations.
 
-### ✨ Features:
+### Features
 - **Simultaneous Testing**: Test multiple APIs concurrently in one session
 - **Weighted Distribution**: Control request frequency per endpoint with weights
 - **Per-Endpoint Configuration**: Custom methods, headers, payloads, timeouts per endpoint
@@ -774,7 +836,7 @@ Multiple endpoints testing enables simultaneous load testing of different APIs w
 - **Integration Ready**: Works with ramp-up patterns and all existing features
 - **Flexible Config**: JSON/YAML configuration files
 
-### 📋 Example Endpoints Configuration:
+### Example Endpoints Configuration
 
 #### JSON Format:
 ```json
@@ -828,7 +890,7 @@ Multiple endpoints testing enables simultaneous load testing of different APIs w
 }
 ```
 
-### 🚀 Multiple Endpoints Usage:
+### Multiple Endpoints Usage
 
 ```bash
 # Basic multi-endpoint testing
@@ -850,7 +912,7 @@ pulzr --endpoints api_config.json -c 30 -r 100 -d 900 \
       --random-ua --output microservices_test
 ```
 
-### ⚙️ Endpoint Configuration:
+### Endpoint Configuration
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -863,13 +925,13 @@ pulzr --endpoints api_config.json -c 30 -r 100 -d 900 \
 | `weight` | Number | Request frequency weight (default: 1.0) |
 | `expected_status` | Array | Expected HTTP status codes (default: 2xx) |
 
-### 📊 Weighted Distribution:
+### Weighted Distribution
 - **Weight Values**: Higher weights = more frequent requests
 - **Example**: weight 3.0 = 3x more likely than weight 1.0
 - **Distribution**: Weights are normalized to create probability distribution
 - **Real-time**: Live console output shows which endpoints are being hit
 
-### 💡 Use Cases:
+### Use Cases
 
 #### **Microservices Testing**:
 ```bash
@@ -896,7 +958,7 @@ pulzr --endpoints capacity_test.json --ramp-up 120 --ramp-pattern exponential \
       -c 500 -d 3600 --webui --output capacity_analysis
 ```
 
-### 🎯 Best Practices:
+### Best Practices
 
 - **Weight Distribution**: Use weights to simulate realistic traffic patterns
 - **Expected Status**: Define expected status codes to catch regressions
@@ -905,11 +967,11 @@ pulzr --endpoints capacity_test.json --ramp-up 120 --ramp-pattern exponential \
 - **Ramp-up**: Combine with ramp-up patterns for realistic load progression
 - **Documentation**: Document endpoint purposes and expected behaviors
 
-## 🐛 Debug Mode
+## Debug Mode
 
 Debug mode provides detailed request/response logging with multiple verbosity levels, perfect for troubleshooting API issues, analyzing request patterns, and understanding HTTP interactions during load testing.
 
-### ✨ Features:
+### Features
 - **Request/Response Correlation**: Each request gets a unique session ID for easy tracking
 - **Three Verbosity Levels**: Choose the right level of detail for your needs
 - **Timing Information**: Precise request timing and duration tracking
@@ -917,7 +979,7 @@ Debug mode provides detailed request/response logging with multiple verbosity le
 - **Structured Output**: Clean, readable debug output with timestamps
 - **CLI Integration**: Simple command-line options for immediate debugging
 
-### 📋 Debug Levels:
+### Debug Levels
 
 #### **Level 1: Basic** (`--debug-level 1`)
 Shows essential request/response information:
@@ -938,7 +1000,7 @@ Includes everything from Level 2 plus:
 - Response body content (truncated for large responses)
 - Complete HTTP transaction details
 
-### 🚀 Debug Usage Examples:
+### Debug Usage Examples
 
 ```bash
 # Basic debug mode (Level 1) with scenarios
@@ -958,7 +1020,7 @@ pulzr --endpoints examples/api_endpoints.json --debug --debug-level 1 \
       --ramp-up 30 --ramp-pattern linear -c 10 -d 120
 ```
 
-### 📋 Debug Output Example:
+### Debug Output Example
 
 ```
 [DEBUG] Request 000001 [14:30:15.123]
@@ -978,7 +1040,7 @@ pulzr --endpoints examples/api_endpoints.json --debug --debug-level 1 \
   Body: {"id": 12345, "name": "test", "email": "test@httpbin.org", "created": "2024-01-01T14:30:15Z"}
 ```
 
-### 🎯 Use Cases:
+### Use Cases
 
 #### **API Development & Testing**:
 ```bash
@@ -1004,7 +1066,7 @@ pulzr --endpoints production_apis.json --debug --debug-level 1 -c 5 -d 300
 pulzr --scenario auth_test.json --debug --debug-level 2 -c 1 -d 120
 ```
 
-### 💡 Debug Best Practices:
+### Debug Best Practices
 
 - **Level 1**: Use for performance testing to track basic request/response flow
 - **Level 2**: Use for authentication and header debugging
@@ -1013,18 +1075,18 @@ pulzr --scenario auth_test.json --debug --debug-level 2 -c 1 -d 120
 - **Single Concurrency**: Use `-c 1` for cleaner debug output during troubleshooting
 - **Scenario Testing**: Debug mode works best with scenario and endpoint configurations
 
-### ⚠️ Important Notes:
+### Important Notes
 
 - **Performance Impact**: Debug mode has minimal impact on Level 1, increasing with higher levels
 - **Output Volume**: Level 3 can generate significant output with large payloads
 - **Security**: Be cautious with Level 3 when debugging sensitive data
 - **Session Correlation**: Use session IDs to track request/response pairs in concurrent tests
 
-## 🌐 Web Dashboard
+## Web Dashboard
 
 The WebUI provides a clean, modern web interface with real-time monitoring and detailed request logging.
 
-### ✨ Features:
+### Features
 - **Live Metrics Cards**: Real-time requests, RPS, response times, success rate
 - **Real-time Request Logs**: Individual HTTP requests with timestamps, status codes, response times
 - **Auto-scrolling Logs**: Latest requests automatically scroll into view  
@@ -1038,12 +1100,12 @@ The WebUI provides a clean, modern web interface with real-time monitoring and d
 - **Auto Port Selection**: Finds available ports automatically (default: 9622)
 - **Browser Integration**: Auto-open in default browser with `--open-browser`
 
-### 🎮 WebUI vs TUI:
+### WebUI vs TUI
 - **WebUI Mode**: `--webui` automatically disables TUI for clean web-only experience
 - **TUI Mode**: Default terminal interface with sparkline charts and live metrics
 - **Headless Mode**: `--headless` for automation and CI/CD pipelines (alias: `--no-tui`)
 
-### 💡 Usage Examples:
+### Usage Examples
 ```bash
 # Quick WebUI test with auto-open browser
 pulzr --url https://httpbin.org/get --webui --open-browser
@@ -1061,16 +1123,16 @@ pulzr --url https://httpbin.org/get --webui --websocket \
       --open-browser -c 50 -r 100 -d 600
 ```
 
-## 📡 WebSocket API
+## WebSocket API
 
 WebSocket server provides real-time metrics streaming for external monitoring and integrations.
 
-### 🔌 Connection
+### Connection
 - **Default Port**: `9621` (auto-selected if busy)
 - **URL Format**: `ws://localhost:9621`
 - **Enabled by**: `--websocket` or `--webui` flags
 
-### 📨 Message Types
+### Message Types
 
 | Type | Description | Frequency |
 |------|-------------|-----------|
@@ -1080,7 +1142,7 @@ WebSocket server provides real-time metrics streaming for external monitoring an
 | `test_completed` | Final summary with percentiles | Once at end |
 | `error_event` | Error notifications and issues | As needed |
 
-### 📋 Message Examples
+### Message Examples
 
 #### Test Started
 ```json
@@ -1134,7 +1196,7 @@ WebSocket server provides real-time metrics streaming for external monitoring an
 }
 ```
 
-### 🔗 Integration Examples
+### Integration Examples
 
 #### JavaScript WebSocket Client
 ```javascript
@@ -1259,7 +1321,7 @@ pulzr --url https://httpbin.org/user-agent --random-ua -c 3 -r 2 -d 600
 
 Pulzr provides comprehensive real-time metrics analysis and monitoring capabilities for deep performance insights.
 
-### ✨ Advanced Metrics Features:
+### Advanced Metrics Features
 - **Response Time Percentiles**: Real-time P50, P90, P95, and P99 calculations
 - **Latency Histograms**: Visual distribution charts with configurable buckets
 - **Smart Alerts**: Configurable error rate and performance degradation detection
@@ -1267,7 +1329,7 @@ Pulzr provides comprehensive real-time metrics analysis and monitoring capabilit
 - **Real-time Updates**: Live streaming metrics via WebSocket
 - **Custom Thresholds**: User-defined alert thresholds for different scenarios
 
-### 📋 Percentile Metrics:
+### Percentile Metrics
 ```bash
 # Basic load test with percentile monitoring
 pulzr --url https://api.example.com --webui --open-browser -c 50 -d 300
@@ -1282,14 +1344,14 @@ pulzr --url https://api.example.com -c 100 -r 200 -d 600 --webui
 - **P95**: 95% of requests complete within this time
 - **P99**: 99% of requests complete within this time
 
-### 📊 Latency Histograms:
+### Latency Histograms
 The WebUI displays real-time latency distribution charts showing:
 - **Response Time Buckets**: Configurable time ranges (e.g., 0-10ms, 10-50ms, 50-100ms)
 - **Request Distribution**: Visual representation of response time spread
 - **Performance Patterns**: Identify outliers and performance trends
 - **Real-time Updates**: Live histogram updates during testing
 
-### 🚨 Smart Alerts:
+### Smart Alerts
 Configure intelligent alerts for automated monitoring:
 
 ```bash
@@ -1304,14 +1366,14 @@ pulzr --url https://api.example.com --webui -c 50 -d 300 \
 - **Threshold Monitoring**: Custom alerts for specific performance criteria
 - **Real-time Notifications**: Instant alerts in TUI and WebUI interfaces
 
-### 📉 Performance Degradation Detection:
+### Performance Degradation Detection
 Automatic performance monitoring with baseline comparison:
 - **Baseline Tracking**: Establishes performance baselines during test execution
 - **Trend Analysis**: Monitors response time trends over time
 - **Degradation Alerts**: Automatic warnings when performance degrades
 - **Severity Levels**: Low, Medium, High, and Critical alert classifications
 
-## 🔐 Authentication & Security
+## Authentication & Security
 
 Comprehensive authentication support for testing secured APIs and services.
 
@@ -1565,6 +1627,260 @@ Features: HTTP/2 multiplexing, Header compression, Binary framing, Adaptive wind
 - **Window Tuning**: Optimize window sizes for your specific use case
 - **Fallback Support**: Allow fallback for broader compatibility
 
+## Distributed Load Testing
+
+Scale your load tests across multiple machines with Pulzr's distributed architecture. Perfect for testing high-capacity systems, simulating geographically distributed traffic, and breaking through single-machine limitations.
+
+### Distributed Features
+- **Coordinator-Worker Architecture**: Central coordination with distributed execution
+- **Automatic Load Distribution**: Intelligent request distribution across workers
+- **Real-time Metrics Aggregation**: Centralized statistics from all workers
+- **WebSocket Communication**: Low-latency coordination protocol
+- **Load Balancing Algorithms**: Round-robin, load-based, and custom distribution
+- **Worker Auto-Discovery**: Automatic worker registration and management
+- **Fault Tolerance**: Automatic worker failure detection and recovery
+- **WebUI Integration**: Real-time monitoring of distributed tests
+- **Geographic Distribution**: Deploy workers across different regions/networks
+
+### Architecture Overview
+
+```
+┌─────────────────┐    WebSocket    ┌─────────────────┐
+│   Coordinator   │◄───────────────►│    Worker 1     │
+│  (Control Hub)  │                 │ (Test Execution)│
+│                 │    WebSocket    ┌─────────────────┐
+│ • Load Balancing│◄───────────────►│    Worker 2     │
+│ • Metrics Agg.  │                 │ (Test Execution)│
+│ • WebUI Dashboard│   WebSocket    ┌─────────────────┐
+│ • Test Control  │◄───────────────►│    Worker N     │
+└─────────────────┘                 │ (Test Execution)│
+                                    └─────────────────┘
+```
+
+### Quick Start Guide
+
+#### 1. **Start the Coordinator**
+```bash
+# Basic coordinator setup
+pulzr --coordinator --coordinator-port 9630
+
+# Coordinator with WebUI monitoring
+pulzr --coordinator --webui --open-browser --coordinator-port 9630 --max-workers 20
+
+# Production coordinator with advanced settings
+pulzr --coordinator --coordinator-port 9630 --max-workers 50 \
+      --webui --websocket --output distributed_test_results
+```
+
+#### 2. **Connect Workers** (run on different machines)
+```bash
+# Basic worker connection
+pulzr --worker --coordinator-host 192.168.1.100 --coordinator-port 9630
+
+# High-performance worker
+pulzr --worker --coordinator-host coordinator.example.com \
+      --worker-id "gpu-server-1" --max-concurrent 500 --max-rps 1000
+
+# Regional worker with specific configuration
+pulzr --worker --coordinator-host 10.0.1.100 --coordinator-port 9630 \
+      --worker-id "us-east-worker" --max-concurrent 200 --max-rps 400
+```
+
+#### 3. **Run Distributed Tests** (from coordinator)
+```bash
+# Automatic distributed load test
+pulzr --url https://api.example.com --coordinator --webui --open-browser \
+      -c 500 -r 1000 -d 1800
+
+# Distributed scenario testing
+pulzr --scenario production_test.json --coordinator --webui \
+      -c 1000 -r 2000 -d 3600 --output large_scale_test
+
+# Multi-endpoint distributed testing
+pulzr --endpoints api_suite.json --coordinator --webui --open-browser \
+      -c 750 -r 1500 -d 2400
+```
+
+### Coordinator Configuration
+
+| Parameter | Description | Default | Example |
+|-----------|-------------|---------|---------|
+| `--coordinator` | Enable coordinator mode | false | `--coordinator` |
+| `--coordinator-port` | Listening port for workers | 9630 | `--coordinator-port 9630` |
+| `--max-workers` | Maximum concurrent workers | 100 | `--max-workers 50` |
+| `--auto-balance-load` | Enable automatic load balancing | true | `--auto-balance-load` |
+| `--heartbeat-timeout` | Worker timeout in seconds | 30 | `--heartbeat-timeout 60` |
+
+### Worker Configuration
+
+| Parameter | Description | Default | Example |
+|-----------|-------------|---------|---------|
+| `--worker` | Enable worker mode | false | `--worker` |
+| `--coordinator-host` | Coordinator hostname/IP | localhost | `--coordinator-host 10.0.1.100` |
+| `--coordinator-port` | Coordinator port | 9630 | `--coordinator-port 9630` |
+| `--worker-id` | Unique worker identifier | auto-generated | `--worker-id "worker-gpu-1"` |
+| `--max-concurrent` | Max concurrent requests | 100 | `--max-concurrent 500` |
+| `--max-rps` | Max requests per second | unlimited | `--max-rps 1000` |
+
+### Load Distribution Algorithms
+
+#### **1. Round Robin Distribution** (Default)
+Evenly distributes requests across all available workers:
+```bash
+# Coordinator automatically balances 1000 concurrent across all workers
+pulzr --url https://httpbin.org/get --coordinator --webui -c 1000 -d 600
+```
+- **Best for**: Uniform worker capabilities
+- **Distribution**: Equal load per worker
+- **Use case**: Homogeneous infrastructure
+
+#### **2. Load-Based Distribution**
+Dynamically adjusts based on worker performance and current load:
+```bash
+# Intelligent load balancing based on worker performance
+pulzr --url https://httpbin.org/get --coordinator --load-strategy load-based \
+      --webui -c 1000 -r 2000 -d 1800
+```
+- **Best for**: Mixed worker capabilities
+- **Distribution**: Performance-weighted allocation
+- **Use case**: Heterogeneous infrastructure
+
+#### **3. Weighted Distribution**
+Manual weight assignment for custom load distribution:
+```bash
+# Custom worker weights (worker-1: 50%, worker-2: 30%, worker-3: 20%)
+pulzr --url https://httpbin.org/get --coordinator --load-strategy weighted \
+      --worker-weights "worker-1:0.5,worker-2:0.3,worker-3:0.2" \
+      --webui -c 1000 -d 900
+```
+- **Best for**: Known performance characteristics
+- **Distribution**: User-defined weights
+- **Use case**: Capacity planning and testing
+
+### Real-time Metrics Aggregation
+
+The coordinator automatically aggregates metrics from all workers:
+
+**Global Metrics:**
+- **Total Requests**: Cumulative requests across all workers
+- **Aggregated RPS**: Combined requests per second
+- **Response Time Percentiles**: Weighted percentiles (P50, P90, P95, P99)
+- **Success/Error Rates**: Combined success and failure statistics
+- **Throughput**: Total bandwidth across all workers
+
+**Per-Worker Metrics:**
+- **Individual Performance**: Each worker's specific metrics
+- **Load Distribution**: Current request allocation per worker
+- **Health Status**: Worker connectivity and performance status
+- **Resource Usage**: CPU, memory, and connection utilization
+
+### Geographic Distribution Examples
+
+#### **Multi-Region Setup**
+```bash
+# US East Coordinator (Virginia)
+pulzr --coordinator --coordinator-port 9630 --webui \
+      --coordinator-id "us-east-coordinator"
+
+# EU West Worker (Ireland)
+pulzr --worker --coordinator-host us-east.example.com \
+      --worker-id "eu-west-worker" --max-concurrent 300
+
+# Asia Pacific Worker (Singapore)
+pulzr --worker --coordinator-host us-east.example.com \
+      --worker-id "apac-worker" --max-concurrent 250
+
+# Distributed global test
+pulzr --url https://global-api.example.com --coordinator \
+      --webui --open-browser -c 1500 -r 3000 -d 3600 \
+      --output global_load_test
+```
+
+#### **Hybrid Cloud Setup**
+```bash
+# On-premises coordinator
+pulzr --coordinator --coordinator-port 9630 --max-workers 25
+
+# AWS worker (high-performance instance)
+pulzr --worker --coordinator-host corporate.example.com \
+      --worker-id "aws-c5.4xlarge" --max-concurrent 800 --max-rps 1500
+
+# Azure worker (standard instance)
+pulzr --worker --coordinator-host corporate.example.com \
+      --worker-id "azure-d4s-v3" --max-concurrent 400 --max-rps 800
+
+# Google Cloud worker (CPU-optimized)
+pulzr --worker --coordinator-host corporate.example.com \
+      --worker-id "gcp-c2-standard-8" --max-concurrent 600 --max-rps 1200
+```
+
+### Fault Tolerance & Recovery
+
+#### **Automatic Worker Recovery**
+- **Heartbeat Monitoring**: Regular health checks (default: 10 seconds)
+- **Automatic Failover**: Redistribute load when workers disconnect
+- **Graceful Reconnection**: Workers automatically rejoin when available
+- **Load Rebalancing**: Dynamic adjustment when worker count changes
+
+#### **Network Resilience**
+```bash
+# Coordinator with extended timeouts for unstable networks
+pulzr --coordinator --heartbeat-timeout 60 --connection-timeout 30 \
+      --webui --coordinator-port 9630
+
+# Worker with connection retry
+pulzr --worker --coordinator-host coordinator.example.com \
+      --connection-retry-interval 10 --max-connection-retries 5 \
+      --worker-id "resilient-worker"
+```
+
+### Use Cases & Best Practices
+
+#### **Large-Scale Load Testing**
+```bash
+# 10,000 concurrent users across 20 workers
+pulzr --url https://httpbin.org/get --coordinator --webui --open-browser \
+      -c 10000 -r 5000 -d 3600 --output massive_load_test
+```
+
+#### **Geographic Performance Testing**
+```bash
+# Test CDN and edge performance from multiple regions
+pulzr --scenario cdn_test.json --coordinator --webui \
+      -c 2000 -d 1800 --output cdn_performance_test
+```
+
+#### **Microservices Stress Testing**
+```bash
+# Distributed testing of microservices architecture
+pulzr --endpoints microservices.json --coordinator --webui \
+      -c 5000 -r 10000 -d 7200 --output microservices_stress_test
+```
+
+#### **CI/CD Distributed Testing**
+```bash
+# Automated distributed testing in CI pipeline
+pulzr --url $API_ENDPOINT --coordinator --headless \
+      --output-format compact -c 1000 -d 300 --output ci_distributed_test
+```
+
+### Performance Tips
+
+- **Network Bandwidth**: Ensure adequate bandwidth between coordinator and workers
+- **Worker Placement**: Distribute workers across different networks/regions for realistic testing
+- **Resource Monitoring**: Monitor coordinator and worker resource usage during tests
+- **Load Balancing**: Use load-based distribution for heterogeneous worker environments
+- **WebUI Monitoring**: Use coordinator WebUI for real-time visibility into distributed tests
+- **Gradual Scaling**: Start with fewer workers and scale up to identify bottlenecks
+
+### Important Considerations
+
+- **Coordinator Capacity**: The coordinator can handle up to 100 workers by default
+- **Network Requirements**: Stable WebSocket connections between coordinator and workers
+- **Synchronization**: All workers should have synchronized clocks for accurate metrics
+- **Security**: Use secure networks or VPN for distributed setups across untrusted networks
+- **Resource Planning**: Factor in network overhead and coordination latency
+
 ## Real-World Examples
 
 ### API Testing with WebUI
@@ -1623,6 +1939,48 @@ pulzr --url $API_ENDPOINT --output-format minimal --headless \
 
 # Request count mode for CI testing
 pulzr --url $API_ENDPOINT --headless -c 5 -n 100 --output ci_results --timeout 10
+```
+
+### Distributed Load Testing
+```bash
+# Large-scale e-commerce platform testing (Black Friday simulation)
+# Coordinator (main control server)
+pulzr --coordinator --webui --open-browser --coordinator-port 9630 \
+      --max-workers 50 --output black_friday_test
+
+# Multi-region workers
+# US East worker (Virginia)
+pulzr --worker --coordinator-host coordinator.company.com \
+      --worker-id "us-east-1" --max-concurrent 1000 --max-rps 2000
+
+# EU West worker (Ireland)  
+pulzr --worker --coordinator-host coordinator.company.com \
+      --worker-id "eu-west-1" --max-concurrent 800 --max-rps 1500
+
+# Asia Pacific worker (Singapore)
+pulzr --worker --coordinator-host coordinator.company.com \
+      --worker-id "apac-1" --max-concurrent 600 --max-rps 1200
+
+# Execute distributed test (run from coordinator)
+pulzr --scenario ecommerce_load_test.json --coordinator --webui \
+      -c 5000 -r 10000 -d 3600 --output distributed_ecommerce_test
+
+# Global API performance testing
+# Coordinator for global CDN testing
+pulzr --coordinator --webui --coordinator-port 9630 --max-workers 20
+
+# Regional workers testing different CDN edges
+pulzr --url https://api.global-service.com --coordinator --webui \
+      -c 2000 -r 4000 -d 1800 --output global_cdn_performance
+
+# Microservices stress testing with mixed workloads
+pulzr --endpoints microservices_suite.json --coordinator --webui \
+      -c 3000 -r 6000 -d 2400 --output microservices_distributed_test
+
+# Financial services compliance testing (high-security, multi-region)
+pulzr --scenario fintech_compliance.json --coordinator --webui \
+      -c 1500 -d 7200 --output compliance_distributed_test \
+      --random-ua --output-format compact
 ```
 
 ## License

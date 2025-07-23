@@ -1,7 +1,17 @@
 [package]
 name = "pulzr"
-version = "0.1.0"
+version = "0.2.1"
 edition = "2021"
+authors = ["Arnon Sang-ngern <arnon.sangn@gmail.com>"]
+description = "A http load testing tool for performance testing."
+license = "MIT"
+repository = "https://github.com/arnonsang/pulzr"
+readme = "README.md"
+keywords = ["cli", "tool"]
+categories = ["command-line-utilities"]
+homepage = "https://github.com/arnonsang/pulzr"
+documentation = "https://github.com/arnonsang/pulzr#readme"
+exclude = ["target/*", ".github/*"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
@@ -28,6 +38,9 @@ axum = "0.8"
 jsonwebtoken = "9.3"
 base64 = "0.22"
 prometheus = "0.14"
+hostname = "0.3"
+local-ip-address = "0.6"
+num_cpus = "1.16"
 
 [dev-dependencies]
 tokio-test = "0.4"

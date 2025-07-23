@@ -14,6 +14,7 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum WebSocketMessage {
+    // Original WebUI messages
     #[serde(rename = "test_started")]
     TestStarted {
         timestamp: chrono::DateTime<chrono::Utc>,
@@ -39,6 +40,142 @@ pub enum WebSocketMessage {
         timestamp: chrono::DateTime<chrono::Utc>,
         error: String,
     },
+
+    // Distributed load testing messages
+    #[serde(rename = "worker_join_request")]
+    WorkerJoinRequest {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        worker_id: String,
+        worker_info: WorkerInfo,
+    },
+    #[serde(rename = "worker_join_response")]
+    WorkerJoinResponse {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        worker_id: String,
+        accepted: bool,
+        coordinator_id: String,
+        message: String,
+    },
+    #[serde(rename = "worker_heartbeat")]
+    WorkerHeartbeat {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        worker_id: String,
+        status: WorkerStatus,
+        current_load: WorkerLoad,
+    },
+    #[serde(rename = "test_command")]
+    TestCommand {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        command_id: String,
+        command_type: TestCommandType,
+        test_config: DistributedTestConfig,
+        target_workers: Vec<String>, // Empty means all workers
+    },
+    #[serde(rename = "test_command_response")]
+    TestCommandResponse {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        command_id: String,
+        worker_id: String,
+        status: CommandResponseStatus,
+        message: String,
+    },
+    #[serde(rename = "worker_metrics")]
+    WorkerMetrics {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        worker_id: String,
+        metrics: LiveMetrics,
+        worker_load: WorkerLoad,
+    },
+    #[serde(rename = "coordinator_status")]
+    CoordinatorStatus {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        coordinator_id: String,
+        connected_workers: Vec<String>,
+        test_status: CoordinatorTestStatus,
+    },
+    #[serde(rename = "worker_disconnect")]
+    WorkerDisconnect {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        worker_id: String,
+        reason: String,
+    },
+    #[serde(rename = "worker_failure")]
+    WorkerFailure {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        worker_id: String,
+        reason: String,
+        last_seen: u64, // seconds since last heartbeat
+        worker_info: WorkerInfo,
+    },
+    #[serde(rename = "worker_warning")]
+    WorkerWarning {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        worker_id: String,
+        warning_type: String,
+        message: String,
+    },
+    #[serde(rename = "load_rebalanced")]
+    LoadRebalanced {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        active_workers: Vec<String>,
+        new_distribution: crate::distributed::load_balancer::LoadDistribution,
+        reason: String,
+    },
+    #[serde(rename = "aggregated_metrics")]
+    AggregatedMetrics {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        aggregated_metrics: crate::metrics::distributed_stats::AggregatedMetrics,
+    },
+
+    // Synchronization messages for coordinated test execution
+    #[serde(rename = "sync_prepare")]
+    SyncPrepare {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        test_id: String,
+        coordinator_id: String,
+        target_workers: Vec<String>,
+        sync_timeout_secs: u64,
+    },
+    #[serde(rename = "sync_ready")]
+    SyncReady {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        test_id: String,
+        worker_id: String,
+        ready_for_start: bool,
+        preparation_time_ms: u64,
+    },
+    #[serde(rename = "sync_start")]
+    SyncStart {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        test_id: String,
+        coordinator_id: String,
+        target_workers: Vec<String>,
+        start_timestamp: chrono::DateTime<chrono::Utc>,
+    },
+    #[serde(rename = "sync_stop")]
+    SyncStop {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        test_id: String,
+        coordinator_id: String,
+        target_workers: Vec<String>,
+        stop_timestamp: chrono::DateTime<chrono::Utc>,
+    },
+    #[serde(rename = "sync_status")]
+    SyncStatus {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        test_id: String,
+        worker_id: String,
+        sync_state: SyncState,
+        message: String,
+    },
+    #[serde(rename = "sync_timeout")]
+    SyncTimeout {
+        timestamp: chrono::DateTime<chrono::Utc>,
+        test_id: String,
+        coordinator_id: String,
+        timeout_reason: String,
+        failed_workers: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +186,119 @@ pub struct TestConfig {
     pub duration_secs: u64,
     pub method: String,
     pub user_agent_mode: String,
+}
+
+// Distributed load testing data structures
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerInfo {
+    pub hostname: String,
+    pub ip_address: String,
+    pub port: u16,
+    pub capabilities: WorkerCapabilities,
+    pub version: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerCapabilities {
+    pub max_concurrent_requests: usize,
+    pub max_rps: Option<u64>,
+    pub supported_protocols: Vec<String>,
+    pub available_memory_mb: u64,
+    pub cpu_cores: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum WorkerStatus {
+    Idle,
+    Preparing,
+    Running,
+    Paused,
+    Error,
+    Disconnecting,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerLoad {
+    pub current_rps: f64,
+    pub active_connections: usize,
+    pub memory_usage_mb: u64,
+    pub cpu_usage_percent: f64,
+    pub total_requests_sent: u64,
+    pub errors_count: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TestCommandType {
+    Start,
+    Stop,
+    Pause,
+    Resume,
+    UpdateConfig,
+    Shutdown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DistributedTestConfig {
+    pub test_id: String,
+    pub base_config: TestConfig,
+    pub worker_assignments: Vec<WorkerAssignment>,
+    pub coordination_settings: CoordinationSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerAssignment {
+    pub worker_id: String,
+    pub concurrent_requests: usize,
+    pub rps: Option<u64>,
+    pub duration_secs: Option<u64>,
+    pub start_delay_secs: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CoordinationSettings {
+    pub synchronized_start: bool,
+    pub synchronized_stop: bool,
+    pub sync_timeout_secs: u64,
+    pub max_sync_wait_secs: u64,
+    pub heartbeat_interval_secs: u64,
+    pub metrics_reporting_interval_secs: u64,
+    pub timeout_secs: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CommandResponseStatus {
+    Acknowledged,
+    Started,
+    Completed,
+    Failed,
+    Rejected,
+    PrepareReceived,
+    ReadyToStart,
+    SyncTimeout,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SyncState {
+    Idle,
+    Preparing,
+    Ready,
+    Starting,
+    Running,
+    Stopping,
+    Stopped,
+    Failed,
+    TimedOut,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CoordinatorTestStatus {
+    Idle,
+    Preparing,
+    Running,
+    Paused,
+    Stopping,
+    Completed,
+    Failed,
 }
 
 pub struct WebSocketServer {

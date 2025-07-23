@@ -31,7 +31,7 @@ async fn test_coordinator_startup() -> Result<()> {
     let actual_port = coordinator.start().await?;
 
     assert!(actual_port >= 45000);
-    println!("Coordinator started on port: {}", actual_port);
+    println!("Coordinator started on port: {actual_port}");
 
     // Give coordinator time to fully start
     sleep(Duration::from_millis(100)).await;
@@ -80,7 +80,7 @@ async fn test_worker_connection() -> Result<()> {
     // Start worker connection in background
     let worker_handle = tokio::spawn(async move {
         if let Err(e) = worker.start().await {
-            eprintln!("Worker connection error: {}", e);
+            eprintln!("Worker connection error: {e}");
         }
     });
 
@@ -122,7 +122,7 @@ async fn test_multiple_workers() -> Result<()> {
     let mut worker_handles = Vec::new();
     for i in 0..3 {
         let worker_config = WorkerConfig {
-            worker_id: format!("test-worker-{}", i),
+            worker_id: format!("test-worker-{i}"),
             coordinator_host: "localhost".to_string(),
             coordinator_port,
             max_concurrent_requests: 50,
@@ -139,7 +139,7 @@ async fn test_multiple_workers() -> Result<()> {
 
         let handle = tokio::spawn(async move {
             if let Err(e) = worker.start().await {
-                eprintln!("Worker {} connection error: {}", i, e);
+                eprintln!("Worker {i} connection error: {e}");
             }
         });
         worker_handles.push(handle);
@@ -199,7 +199,7 @@ async fn test_test_command_dispatch() -> Result<()> {
 
     let worker_handle = tokio::spawn(async move {
         if let Err(e) = worker.start().await {
-            eprintln!("Worker connection error: {}", e);
+            eprintln!("Worker connection error: {e}");
         }
     });
 
@@ -238,8 +238,7 @@ async fn test_test_command_dispatch() -> Result<()> {
     let result = coordinator.start_distributed_test(test_config).await;
     assert!(
         result.is_ok(),
-        "Failed to start distributed test: {:?}",
-        result
+        "Failed to start distributed test: {result:?}"
     );
 
     sleep(Duration::from_millis(500)).await;
@@ -248,8 +247,7 @@ async fn test_test_command_dispatch() -> Result<()> {
     let stop_result = coordinator.stop_distributed_test().await;
     assert!(
         stop_result.is_ok(),
-        "Failed to stop distributed test: {:?}",
-        stop_result
+        "Failed to stop distributed test: {stop_result:?}"
     );
 
     // Cleanup
@@ -282,7 +280,7 @@ async fn test_max_workers_limit() -> Result<()> {
     let mut worker_handles = Vec::new();
     for i in 0..3 {
         let worker_config = WorkerConfig {
-            worker_id: format!("test-worker-limit-{}", i),
+            worker_id: format!("test-worker-limit-{i}"),
             coordinator_host: "localhost".to_string(),
             coordinator_port,
             max_concurrent_requests: 50,
@@ -299,7 +297,7 @@ async fn test_max_workers_limit() -> Result<()> {
 
         let handle = tokio::spawn(async move {
             if let Err(e) = worker.start().await {
-                eprintln!("Worker {} connection error: {}", i, e);
+                eprintln!("Worker {i} connection error: {e}");
             }
         });
         worker_handles.push(handle);
@@ -494,7 +492,7 @@ async fn test_load_distribution() -> Result<()> {
     // Add multiple workers
     for i in 1..=3 {
         distributed_stats
-            .add_worker(format!("worker-{}", i), Utc::now())
+            .add_worker(format!("worker-{i}"), Utc::now())
             .await;
 
         // Simulate different worker loads
@@ -529,12 +527,7 @@ async fn test_load_distribution() -> Result<()> {
         };
 
         distributed_stats
-            .update_worker_metrics(
-                format!("worker-{}", i),
-                metrics,
-                load,
-                "Running".to_string(),
-            )
+            .update_worker_metrics(format!("worker-{i}"), metrics, load, "Running".to_string())
             .await;
     }
 
@@ -827,8 +820,7 @@ async fn test_worker_connection_retry() -> Result<(), Box<dyn std::error::Error>
     let error_message = start_result.unwrap_err().to_string();
     assert!(
         error_message.contains("Failed to connect") || error_message.contains("timeout"),
-        "Error should indicate connection failure or timeout: {}",
-        error_message
+        "Error should indicate connection failure or timeout: {error_message}"
     );
 
     Ok(())
@@ -858,13 +850,13 @@ async fn test_synchronized_test_start() -> Result<(), Box<dyn std::error::Error>
     let mut coordinator =
         DistributedCoordinator::new(coordinator_config, Arc::clone(&stats_collector));
     let actual_port = coordinator.start().await?;
-    println!("Coordinator started on port {}", actual_port);
+    println!("Coordinator started on port {actual_port}");
 
     // Create multiple workers
     let mut workers = Vec::new();
     for i in 0..2 {
         let worker_config = WorkerConfig {
-            worker_id: format!("test-worker-sync-{}", i),
+            worker_id: format!("test-worker-sync-{i}"),
             coordinator_host: "127.0.0.1".to_string(),
             coordinator_port: actual_port,
             max_concurrent_requests: 10,
@@ -934,7 +926,7 @@ async fn test_synchronized_test_start() -> Result<(), Box<dyn std::error::Error>
 
     // Verify test is running
     let test_status = coordinator.get_test_status().await;
-    println!("Test status: {:?}", test_status);
+    println!("Test status: {test_status:?}");
 
     // Stop the test
     let stop_result = coordinator.stop_distributed_test().await;
@@ -1009,7 +1001,7 @@ async fn test_synchronization_timeout() -> Result<(), Box<dyn std::error::Error>
 
     // Check that test status indicates failure due to timeout
     let test_status = coordinator.get_test_status().await;
-    println!("Test status after timeout: {:?}", test_status);
+    println!("Test status after timeout: {test_status:?}");
 
     Ok(())
 }

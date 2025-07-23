@@ -1,6 +1,6 @@
 [package]
 name = "pulzr"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["Arnon Sang-ngern <arnon.sangn@gmail.com>"]
 description = "A http load testing tool for performance testing."

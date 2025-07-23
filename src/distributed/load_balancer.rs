@@ -507,8 +507,10 @@ mod tests {
 
     #[test]
     fn test_load_based_distribution() {
-        let mut config = LoadDistributionConfig::default();
-        config.strategy = LoadDistributionStrategy::LoadBased;
+        let config = LoadDistributionConfig {
+            strategy: LoadDistributionStrategy::LoadBased,
+            ..Default::default()
+        };
         let engine = LoadDistributionEngine::new(config);
 
         let workers = vec![
